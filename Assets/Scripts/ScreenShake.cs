@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
 
-public class ScreenShake : MonoBehaviour
+public class CameraShake : MonoBehaviour
 {
     [Header("Settings")]
     public float maxShakeMagnitude = 0.5f; // Maximum intensity of the shake
@@ -17,28 +17,19 @@ public class ScreenShake : MonoBehaviour
         {
             Debug.LogError("No main camera found. Screen shake effect will not work.");
         }
-        else
-        {
-            Debug.Log("Main camera successfully found.");
-        }
     }
 
-    void OnTriggerEnter2D(Collider2D collision)
+    public void TriggerShake()
     {
-        Debug.Log($"Collision detected with {collision.gameObject.name}");
-
-        // Check if both objects are hitboxes
-        if (collision.CompareTag("Hitbox") && gameObject.CompareTag("Hitbox"))
+        // Start the screen shake coroutine
+        if (mainCamera != null)
         {
-            Debug.Log("Collision detected between hitboxes! Triggering screen shake.");
             StartCoroutine(IntenseScreenShake(shakeDecayFrames, maxShakeMagnitude));
         }
     }
 
     private IEnumerator IntenseScreenShake(int frames, float initialMagnitude)
     {
-        if (mainCamera == null) yield break;
-
         Vector3 originalPosition = mainCamera.transform.position;
 
         for (int frame = 0; frame < frames; frame++)
