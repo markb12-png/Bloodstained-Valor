@@ -6,17 +6,26 @@ using System.Collections;
 public class MenuSelector : MonoBehaviour
 {
     public RectTransform selector; // Arrow indicator
-    public Button[] menuButtons; // All menu buttons
+    public Button[] menuButtons;   // All menu buttons
     public TextMeshProUGUI[] highlightTexts; // Highlight effect texts
-    public MenuFunctions menuFunctions; // Reference to menu function script
-    public GameObject loadGameMenu; // Reference to Load Game UI panel
-    public GameObject settingsMenu; // Reference to Settings UI panel
+    public MenuFunctions menuFunctions;      // Reference to menu function script
+    public GameObject loadGameMenu;          // Reference to Load Game UI panel
+
+    public AudioClip moveSound;    // Sound when moving selector
+    public AudioClip selectSound;  // Sound when selecting option
+    private AudioSource audioSource;
+
     private int selectedIndex = 0;
     private bool isLocked = false; // Locks input during selection
 
+    private void Start()
+    {
+        audioSource = gameObject.AddComponent<AudioSource>();
+    }
+
     private void Update()
     {
-        if (isLocked || SubmenuIsOpen())
+        if (isLocked || loadGameMenu.activeSelf)
         {
             CheckForEscapeKey(); // Allow Escape key to close submenus
             return;
@@ -26,16 +35,19 @@ public class MenuSelector : MonoBehaviour
         {
             selectedIndex = (selectedIndex + 1) % menuButtons.Length;
             UpdateSelectorPosition();
+            PlaySound(moveSound);
         }
         else if (Input.GetKeyDown(KeyCode.UpArrow))
         {
             selectedIndex = (selectedIndex - 1 + menuButtons.Length) % menuButtons.Length;
             UpdateSelectorPosition();
+            PlaySound(moveSound);
         }
 
         if (Input.GetKeyDown(KeyCode.Return)) // When player presses Enter
         {
             isLocked = true; // Lock input
+            PlaySound(selectSound);
             StartCoroutine(TriggerHighlightEffect()); // Start highlight effect before executing action
         }
     }
@@ -54,7 +66,7 @@ public class MenuSelector : MonoBehaviour
         highlightTexts[selectedIndex].gameObject.SetActive(false); // Hide highlight effect
 
         ExecuteMenuFunction(); // Execute selected option
-        isLocked = false; // Unlock input after action completes
+        isLocked = false;      // Unlock input after action completes
     }
 
     private void ExecuteMenuFunction()
@@ -64,26 +76,26 @@ public class MenuSelector : MonoBehaviour
             case 0: // New Game
                 menuFunctions.StartNewGame();
                 break;
-            case 2: // Settings
-                settingsMenu.SetActive(true); // Open Settings menu
-                break;
-            case 3: // Quit Game
+            case 1: // Quit Game
                 menuFunctions.QuitGame();
                 break;
         }
-    }
-
-    private bool SubmenuIsOpen()
-    {
-        return loadGameMenu.activeSelf || settingsMenu.activeSelf; // Check if either menu is open
     }
 
     private void CheckForEscapeKey()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            if (loadGameMenu.activeSelf) loadGameMenu.SetActive(false); // Close Load Game menu
-            if (settingsMenu.activeSelf) settingsMenu.SetActive(false); // Close Settings menu
+            if (loadGameMenu.activeSelf)
+                loadGameMenu.SetActive(false); // Close Load Game menu
+        }
+    }
+
+    private void PlaySound(AudioClip clip)
+    {
+        if (clip != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(clip);
         }
     }
 }

@@ -7,25 +7,32 @@ public class PlayerDash : MonoBehaviour
     public float dashForce = 10f; // Initial strong force for the dash
     public float dashDuration = 0.3f; // Total duration of the dash
     public float dashCooldown = 1f; // Cooldown between dashes
-    private Rigidbody2D rb; // Reference to Rigidbody2D
+    public int maxDashCharges = 3; // Maximum number of dash charges
+    public float chargeRefillTime = 4f; // Time to refill one dash charge
+
+    private int currentDashCharges;
+    private bool isRefilling = false;
+    private bool canDash = true; // Controls cooldown between dashes
+
+    private Rigidbody2D rb;
 
     private PlayerMovement movementScript;
     private PlayerJump jumpScript;
-    private PlayerAttack attackScript; // Reference to PlayerAttack script
-
-    private bool canDash = true; // Determines if the player can dash
+    private PlayerAttack attackScript;
 
     private void Start()
     {
-        rb = GetComponent<Rigidbody2D>(); // Initialize Rigidbody
+        rb = GetComponent<Rigidbody2D>();
         movementScript = GetComponent<PlayerMovement>();
         jumpScript = GetComponent<PlayerJump>();
         attackScript = GetComponent<PlayerAttack>();
+
+        currentDashCharges = maxDashCharges; // Start fully charged
     }
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.LeftAlt) && canDash) // Dash now uses Left Alt
+        if (Input.GetKeyDown(KeyCode.C) && canDash && currentDashCharges > 0)
         {
             StartCoroutine(Dash());
         }
@@ -33,47 +40,74 @@ public class PlayerDash : MonoBehaviour
 
     private IEnumerator Dash()
     {
-        canDash = false; // Disable further dashes during cooldown
+        canDash = false;           // Start cooldown between dashes
+        currentDashCharges--;      // Use one charge
 
-        // Step 1: Disable movement and attack scripts during dash
-        DisableScripts();
-
-        // Step 2: Perform the dash based on movement direction
-        float elapsedTime = 0f;
-        Vector2 dashDirection = rb.velocity.x > 0 ? Vector2.right : Vector2.left;
-
-        while (elapsedTime < dashDuration)
+        if (!isRefilling)
         {
-            float t = elapsedTime / dashDuration; // Progression from 0 to 1
-            float currentForce = Mathf.Lerp(dashForce, 0, t); // Strong at the start, fades out
-            rb.velocity = dashDirection * currentForce; // Apply velocity
-
-            elapsedTime += Time.deltaTime;
-            yield return null; // Wait for the next frame
+            StartCoroutine(RefillCharges());
         }
 
-        // Step 3: Stop movement after dash
+        // Disable other scripts during dash
+        DisableScripts();
+
+        // Determine dash direction
+        Vector2 dashDirection = rb.velocity.x > 0 ? Vector2.right : Vector2.left;
+        float elapsedTime = 0f;
+
+        // Dash movement loop
+        while (elapsedTime < dashDuration)
+        {
+            float t = elapsedTime / dashDuration;
+            float currentForce = Mathf.Lerp(dashForce, 0, t);
+            rb.velocity = dashDirection * currentForce;
+
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+
+        // Stop horizontal velocity after dash
         rb.velocity = Vector2.zero;
 
-        // Step 4: Re-enable movement and attack scripts
+        // Re-enable scripts after dash
         EnableScripts();
 
-        // Step 5: Cooldown before next dash
+        // Wait for dash cooldown before next dash (if charges remain)
         yield return new WaitForSeconds(dashCooldown);
-        canDash = true; // Allow dashing again
+        canDash = true;
+    }
+
+    private IEnumerator RefillCharges()
+    {
+        isRefilling = true;
+
+        while (currentDashCharges < maxDashCharges)
+        {
+            yield return new WaitForSeconds(chargeRefillTime);
+            currentDashCharges++;
+            Debug.Log($"Dash charge refilled. Current charges: {currentDashCharges}");
+        }
+
+        isRefilling = false;
     }
 
     private void DisableScripts()
     {
         if (movementScript != null) movementScript.enabled = false;
-        if (jumpScript != null) jumpScript.enabled = false;
+        if (jumpScript != null) movementScript.enabled = false;
         if (attackScript != null) attackScript.enabled = false;
     }
 
     private void EnableScripts()
     {
         if (movementScript != null) movementScript.enabled = true;
-        if (jumpScript != null) jumpScript.enabled = true;
+        if (jumpScript != null) movementScript.enabled = true;
         if (attackScript != null) attackScript.enabled = true;
+    }
+
+    // Optional: Use this for a UI or display
+    public int GetCurrentCharges()
+    {
+        return currentDashCharges;
     }
 }
