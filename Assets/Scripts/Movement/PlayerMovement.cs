@@ -1,9 +1,11 @@
+
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
     public float moveSpeed = 5f; // Normal movement speed
     public float sprintSpeed = 10f; // Sprinting speed
+    public Animator _animator;
     private Rigidbody2D rb;
 
     // Flags to track movement state
@@ -28,8 +30,18 @@ public class PlayerMovement : MonoBehaviour
     private void HandleInput()
     {
         // Capture movement inputs
-        moveLeft = Input.GetKey(KeyCode.A);
-        moveRight = Input.GetKey(KeyCode.D);
+       
+           if( moveLeft = Input.GetKey(KeyCode.A))
+        { 
+            _animator.SetBool("walk left", true);
+            _animator.SetBool("walk right", false);
+        }
+        
+        if(moveRight = Input.GetKey(KeyCode.D))
+        {
+            _animator.SetBool("walk right", true);
+            _animator.SetBool("walk left", false);
+        }
     }
 
     private void ApplyMovement()
