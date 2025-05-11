@@ -4,15 +4,15 @@ using UnityEngine;
 public class PlayerDash : MonoBehaviour
 {
     [Header("Dash Settings")]
-    public float dashForce = 10f; // Initial strong force for the dash
-    public float dashDuration = 0.3f; // Total duration of the dash
-    public float dashCooldown = 1f; // Cooldown between dashes
-    public int maxDashCharges = 3; // Maximum number of dash charges
-    public float chargeRefillTime = 4f; // Time to refill one dash charge
+    public float dashForce = 10f;
+    public float dashDuration = 0.3f;
+    public float dashCooldown = 1f;
+    public int maxDashCharges = 3;
+    public float chargeRefillTime = 4f;
 
     private int currentDashCharges;
     private bool isRefilling = false;
-    private bool canDash = true; // Controls cooldown between dashes
+    private bool canDash = true;
 
     private Rigidbody2D rb;
 
@@ -27,12 +27,15 @@ public class PlayerDash : MonoBehaviour
         jumpScript = GetComponent<PlayerJump>();
         attackScript = GetComponent<PlayerAttack>();
 
-        currentDashCharges = maxDashCharges; // Start fully charged
+        currentDashCharges = maxDashCharges;
     }
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.C) && canDash && currentDashCharges > 0)
+        // Check if left or right input is being held
+        bool movingInput = Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D);
+
+        if (Input.GetKeyDown(KeyCode.C) && canDash && currentDashCharges > 0 && movingInput)
         {
             StartCoroutine(Dash());
         }
@@ -40,22 +43,21 @@ public class PlayerDash : MonoBehaviour
 
     private IEnumerator Dash()
     {
-        canDash = false;           // Start cooldown between dashes
-        currentDashCharges--;      // Use one charge
+        canDash = false;
+        currentDashCharges--;
 
         if (!isRefilling)
         {
             StartCoroutine(RefillCharges());
         }
 
-        // Disable other scripts during dash
         DisableScripts();
 
-        // Determine dash direction
-        Vector2 dashDirection = rb.velocity.x > 0 ? Vector2.right : Vector2.left;
+        // Determine dash direction based on input
+        int inputDirection = Input.GetKey(KeyCode.D) ? 1 : -1;
+        Vector2 dashDirection = new Vector2(inputDirection, 0);
         float elapsedTime = 0f;
 
-        // Dash movement loop
         while (elapsedTime < dashDuration)
         {
             float t = elapsedTime / dashDuration;
@@ -66,13 +68,10 @@ public class PlayerDash : MonoBehaviour
             yield return null;
         }
 
-        // Stop horizontal velocity after dash
         rb.velocity = Vector2.zero;
 
-        // Re-enable scripts after dash
         EnableScripts();
 
-        // Wait for dash cooldown before next dash (if charges remain)
         yield return new WaitForSeconds(dashCooldown);
         canDash = true;
     }
@@ -94,18 +93,17 @@ public class PlayerDash : MonoBehaviour
     private void DisableScripts()
     {
         if (movementScript != null) movementScript.enabled = false;
-        if (jumpScript != null) movementScript.enabled = false;
+        if (jumpScript != null) jumpScript.enabled = false;
         if (attackScript != null) attackScript.enabled = false;
     }
 
     private void EnableScripts()
     {
         if (movementScript != null) movementScript.enabled = true;
-        if (jumpScript != null) movementScript.enabled = true;
+        if (jumpScript != null) jumpScript.enabled = true;
         if (attackScript != null) attackScript.enabled = true;
     }
 
-    // Optional: Use this for a UI or display
     public int GetCurrentCharges()
     {
         return currentDashCharges;

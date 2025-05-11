@@ -25,8 +25,10 @@ public class PlayerJump : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         airAttack = GetComponent<PlayerAirAttack>();
+
+        // Prevent nulls from entering the list
         otherScripts = GetComponents<MonoBehaviour>()
-            .Where(script => script != this && script.enabled)
+            .Where(script => script != null && script != this && script.enabled)
             .ToArray();
     }
 
@@ -34,14 +36,12 @@ public class PlayerJump : MonoBehaviour
     {
         Vector2 rayOrigin = (Vector2)transform.position + groundCheckOffset;
 
-        // Visualize ground check
         if (showDebugRays)
         {
             Debug.DrawRay(rayOrigin, Vector2.down * groundCheckDistance,
-                         IsGrounded() ? Color.green : Color.red);
+                IsGrounded() ? Color.green : Color.red);
         }
 
-        // Enable/disable air attack based on grounded state
         if (airAttack != null)
         {
             airAttack.enabled = !IsGrounded();
@@ -67,22 +67,16 @@ public class PlayerJump : MonoBehaviour
         isJumping = true;
         ToggleOtherScripts(false);
 
-        // Startup frames
         for (int i = 0; i < startupFrames; i++)
         {
             yield return null;
         }
 
-        // Apply jump force
         rb.velocity = new Vector2(rb.velocity.x, jumpForce);
 
-        // Wait until we're airborne
         yield return new WaitUntil(() => !IsGrounded());
-
-        // Wait until we land again
         yield return new WaitUntil(() => IsGrounded());
 
-        // Landing lock frames
         for (int i = 0; i < lockFramesAfterLanding; i++)
         {
             yield return null;

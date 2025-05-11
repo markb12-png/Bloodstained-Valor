@@ -12,7 +12,6 @@ public class PlayerAirAttack : MonoBehaviour
     [SerializeField] private int hitboxDurationFrames = 8;
 
     [Header("Movement")]
-    [SerializeField] private float upwardLift = 4f;
     [SerializeField] private float downwardSpeed = -20f;
 
     [Header("Hitbox")]
@@ -38,7 +37,6 @@ public class PlayerAirAttack : MonoBehaviour
 
     void Update()
     {
-        // Only allow air attack when not grounded
         if (!groundDetector.IsGrounded && !isAirAttacking && Input.GetMouseButtonDown(0))
         {
             Debug.Log("[AirAttack] Triggering air attack");
@@ -54,8 +52,8 @@ public class PlayerAirAttack : MonoBehaviour
 
         int currentFrame = 0;
 
-        // Windup phase (player floats up)
-        rb.velocity = new Vector2(0, upwardLift);
+        // Windup phase (freeze movement)
+        rb.velocity = Vector2.zero;
         while (currentFrame < windupFrames)
         {
             currentFrame++;
@@ -66,7 +64,6 @@ public class PlayerAirAttack : MonoBehaviour
         rb.velocity = new Vector2(0, downwardSpeed);
         while (currentFrame < windupFrames + dashFrames)
         {
-            // Spawn hitbox once at correct frame
             if (currentFrame == hitboxSpawnFrame)
             {
                 Debug.Log("[AirAttack] Spawning vertical hitbox");

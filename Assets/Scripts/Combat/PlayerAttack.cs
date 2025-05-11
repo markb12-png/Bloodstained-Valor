@@ -30,16 +30,16 @@ public class PlayerAttack : MonoBehaviour
     private MonoBehaviour[] otherScripts;
     private bool isAttacking;
 
-    void Start()
+    private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         groundDetector = GetComponent<GroundDetector>();
         otherScripts = GetComponents<MonoBehaviour>()
-            .Where(script => script != this && script != groundDetector)
+            .Where(script => script != null && script != this && script != groundDetector)
             .ToArray();
     }
 
-    void Update()
+    private void Update()
     {
         if (!isAttacking && groundDetector.IsGrounded && Input.GetMouseButtonDown(0))
         {
@@ -52,6 +52,7 @@ public class PlayerAttack : MonoBehaviour
     {
         isAttacking = true;
         ToggleOtherScripts(false);
+
         Vector2 dashDirection = transform.localScale.x > 0 ? Vector2.right : Vector2.left;
         int currentFrame = 0;
 
@@ -70,10 +71,9 @@ public class PlayerAttack : MonoBehaviour
             float speed = maxDashSpeed * accelerationCurve.Evaluate(progress);
             rb.velocity = dashDirection * speed;
 
-            // Spawn the hitbox when it's time
+            // Spawn hitbox on correct frame
             if (currentFrame == hitboxSpawnFrame)
             {
-                Debug.Log("[PlayerAttack] Spawning hitbox");
                 SpawnHitbox(dashDirection);
             }
 
@@ -110,13 +110,14 @@ public class PlayerAttack : MonoBehaviour
 
         Vector2 spawnPosition = (Vector2)transform.position + hitboxOffset * direction;
 
-        // Instantiate the hitbox at the correct position
         GameObject hitbox = Instantiate(hitboxPrefab, spawnPosition, Quaternion.identity);
 
-        // Debugging for when the hitbox is created
-        Debug.Log($"[PlayerAttack] Hitbox created at position: {spawnPosition}");
+        HitboxDamage damage = hitbox.GetComponent<HitboxDamage>();
+        if (damage != null)
+        {
+            damage.SetOwner(gameObject); // Make sure the attacker is ignored
+        }
 
-        // Optional: Destroy after fixed time even if no hit occurs
         Destroy(hitbox, hitboxDurationFrames / 30f);
     }
 
