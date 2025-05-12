@@ -5,14 +5,15 @@ using UnityEngine;
 public class PlayerHalberdAttack : MonoBehaviour
 {
     [Header("Timing (30FPS)")]
-    [SerializeField] private int windupFrames = 20;
+    [SerializeField] private int startupFrames = 20;
     [SerializeField] private int dashFrames = 4;
-    [SerializeField] private int recoveryFrames = 28;
+    [SerializeField] private int slowdownFrames = 8;
+    [SerializeField] private int recoveryFrames = 20;
     [SerializeField] private int hitboxSpawnFrame = 24;
     [SerializeField] private int hitboxDurationFrames = 8;
 
     [Header("Movement")]
-    [SerializeField] private float dashDistance = 3f;
+    [SerializeField] private float maxDashSpeed = 10f;
     [SerializeField]
     private AnimationCurve accelerationCurve = new AnimationCurve(
         new Keyframe(0, 0),
@@ -25,64 +26,78 @@ public class PlayerHalberdAttack : MonoBehaviour
     [SerializeField] private Vector2 hitboxOffset = new Vector2(1f, 0);
 
     private Rigidbody2D rb;
+    private GroundDetector groundDetector;
     private MonoBehaviour[] otherScripts;
-    private bool isAttacking = false;
+    private bool isAttacking;
+    private bool interruptedByClash = false;
 
-    void Start()
+    private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        groundDetector = GetComponent<GroundDetector>();
         otherScripts = GetComponents<MonoBehaviour>()
-            .Where(script => script != this)
+            .Where(script => script != null && script != this && script != groundDetector)
             .ToArray();
     }
 
-    void Update()
+    private void Update()
     {
-        if (!isAttacking && Input.GetMouseButtonDown(1)) // RMB
+        if (!isAttacking && groundDetector.IsGrounded && Input.GetMouseButtonDown(1))
         {
-            StartCoroutine(HalberdAttack());
+            StartCoroutine(AttackMovement());
         }
     }
 
-    private IEnumerator HalberdAttack()
+    public void InterruptBySwordClash()
+    {
+        interruptedByClash = true;
+        StopAllCoroutines();
+        ToggleOtherScripts(false);
+        isAttacking = false;
+    }
+
+    private IEnumerator AttackMovement()
     {
         isAttacking = true;
+        interruptedByClash = false;
         ToggleOtherScripts(false);
 
-        rb.velocity = Vector2.zero;
+        Vector2 dashDirection = transform.localScale.x > 0 ? Vector2.right : Vector2.left;
         int currentFrame = 0;
-        float direction = transform.localScale.x > 0 ? 1f : -1f;
-        Vector2 startPosition = rb.position;
-        Vector2 endPosition = startPosition + Vector2.right * direction * dashDistance;
+        int totalFrames = startupFrames + dashFrames + slowdownFrames + recoveryFrames;
 
-        // Windup
-        while (currentFrame < windupFrames)
-        {
-            currentFrame++;
-            yield return null;
-        }
+        rb.velocity = Vector2.zero;
 
-        // Dash with interpolation
-        for (int i = 0; i < dashFrames; i++)
+        while (currentFrame < totalFrames)
         {
-            float t = (float)i / (dashFrames - 1);
-            float easedT = accelerationCurve.Evaluate(t);
-            Vector2 dashPos = Vector2.Lerp(startPosition, endPosition, easedT);
-            rb.MovePosition(dashPos);
+            if (interruptedByClash) yield break;
 
             if (currentFrame == hitboxSpawnFrame)
             {
-                SpawnHitbox(direction);
+                SpawnHitbox(dashDirection);
             }
 
-            currentFrame++;
-            yield return null;
-        }
+            if (currentFrame < startupFrames)
+            {
+                rb.velocity = Vector2.zero;
+            }
+            else if (currentFrame < startupFrames + dashFrames)
+            {
+                float progress = (currentFrame - startupFrames) / (float)dashFrames;
+                float speed = maxDashSpeed * accelerationCurve.Evaluate(progress);
+                rb.velocity = dashDirection * speed;
+            }
+            else if (currentFrame < startupFrames + dashFrames + slowdownFrames)
+            {
+                float progress = (currentFrame - startupFrames - dashFrames) / (float)slowdownFrames;
+                float speed = Mathf.Lerp(maxDashSpeed, 0, progress * progress);
+                rb.velocity = dashDirection * speed;
+            }
+            else
+            {
+                rb.velocity = Vector2.zero;
+            }
 
-        // Recovery
-        rb.velocity = Vector2.zero;
-        while (currentFrame < windupFrames + dashFrames + recoveryFrames)
-        {
             currentFrame++;
             yield return null;
         }
@@ -91,23 +106,33 @@ public class PlayerHalberdAttack : MonoBehaviour
         isAttacking = false;
     }
 
-    private void SpawnHitbox(float direction)
+    private void SpawnHitbox(Vector2 direction)
     {
+
+        var shake = Camera.main?.GetComponent<SlightCameraShake>();
+        if (shake != null)
+        {
+            shake.Shake();
+        }
+
         if (hitboxPrefab == null) return;
 
-        Vector2 spawnPosition = (Vector2)transform.position + new Vector2(hitboxOffset.x * direction, hitboxOffset.y);
-        GameObject hitbox = Instantiate(hitboxPrefab, spawnPosition, Quaternion.identity);
-        Destroy(hitbox, hitboxDurationFrames / 30f);
+        Vector2 spawnPosition = (Vector2)transform.position + hitboxOffset * direction;
+        GameObject hitbox = Instantiate(hitboxPrefab, spawnPosition, Quaternion.identity, transform); // parented
+        HitboxDamage damage = hitbox.GetComponent<HitboxDamage>();
+        if (damage != null)
+        {
+            damage.SetOwner(gameObject);
+        }
 
-        Debug.Log("[PlayerHalberdAttack] Hitbox spawned");
+        Destroy(hitbox, hitboxDurationFrames / 30f);
     }
 
     private void ToggleOtherScripts(bool state)
     {
         foreach (var script in otherScripts)
         {
-            if (script != null)
-                script.enabled = state;
+            if (script != null) script.enabled = state;
         }
     }
 }

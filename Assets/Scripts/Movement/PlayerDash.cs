@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PlayerDash : MonoBehaviour
 {
@@ -9,6 +10,9 @@ public class PlayerDash : MonoBehaviour
     public float dashCooldown = 1f;
     public int maxDashCharges = 3;
     public float chargeRefillTime = 4f;
+
+    [Header("UI")]
+    [SerializeField] private Slider dashSlider;
 
     private int currentDashCharges;
     private bool isRefilling = false;
@@ -20,6 +24,9 @@ public class PlayerDash : MonoBehaviour
     private PlayerJump jumpScript;
     private PlayerAttack attackScript;
 
+    private int originalLayer;
+    [SerializeField] private string invulnerableLayerName = "Invulnerable";
+
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -28,11 +35,13 @@ public class PlayerDash : MonoBehaviour
         attackScript = GetComponent<PlayerAttack>();
 
         currentDashCharges = maxDashCharges;
+        originalLayer = gameObject.layer;
+
+        UpdateDashSlider();
     }
 
     private void Update()
     {
-        // Check if left or right input is being held
         bool movingInput = Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D);
 
         if (Input.GetKeyDown(KeyCode.C) && canDash && currentDashCharges > 0 && movingInput)
@@ -45,6 +54,7 @@ public class PlayerDash : MonoBehaviour
     {
         canDash = false;
         currentDashCharges--;
+        UpdateDashSlider();
 
         if (!isRefilling)
         {
@@ -53,7 +63,8 @@ public class PlayerDash : MonoBehaviour
 
         DisableScripts();
 
-        // Determine dash direction based on input
+        gameObject.layer = LayerMask.NameToLayer(invulnerableLayerName);
+
         int inputDirection = Input.GetKey(KeyCode.D) ? 1 : -1;
         Vector2 dashDirection = new Vector2(inputDirection, 0);
         float elapsedTime = 0f;
@@ -69,6 +80,7 @@ public class PlayerDash : MonoBehaviour
         }
 
         rb.velocity = Vector2.zero;
+        gameObject.layer = originalLayer;
 
         EnableScripts();
 
@@ -84,10 +96,18 @@ public class PlayerDash : MonoBehaviour
         {
             yield return new WaitForSeconds(chargeRefillTime);
             currentDashCharges++;
-            Debug.Log($"Dash charge refilled. Current charges: {currentDashCharges}");
+            Debug.Log($"[PlayerDash] Charge refilled. Current charges: {currentDashCharges}");
+            UpdateDashSlider();
         }
 
         isRefilling = false;
+    }
+
+    private void UpdateDashSlider()
+    {
+        if (dashSlider == null) return;
+
+        dashSlider.value = (float)currentDashCharges / maxDashCharges;
     }
 
     private void DisableScripts()

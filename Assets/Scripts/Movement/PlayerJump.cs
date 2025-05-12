@@ -9,6 +9,7 @@ public class PlayerJump : MonoBehaviour
     public int startupFrames = 4;
     public int lockFramesAfterLanding = 5;
     private bool isJumping = false;
+    private Coroutine currentJumpRoutine;
 
     [Header("Ground Detection")]
     public float groundCheckDistance = 0.2f;
@@ -26,9 +27,9 @@ public class PlayerJump : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         airAttack = GetComponent<PlayerAirAttack>();
 
-        // Prevent nulls from entering the list
+        // Collect all other scripts except GroundDetector and this
         otherScripts = GetComponents<MonoBehaviour>()
-            .Where(script => script != null && script != this && script.enabled)
+            .Where(script => script != null && script != this && script != airAttack && script.enabled)
             .ToArray();
     }
 
@@ -42,16 +43,26 @@ public class PlayerJump : MonoBehaviour
                 IsGrounded() ? Color.green : Color.red);
         }
 
+        // Air attack toggle logic
         if (airAttack != null)
         {
             airAttack.enabled = !IsGrounded();
+        }
+
+        if (isJumping && airAttack != null && !IsGrounded() && Input.GetMouseButtonDown(0))
+        {
+            Debug.Log("[PlayerJump] Interrupted by Air Attack");
+            StopCoroutine(currentJumpRoutine);
+            ToggleOtherScripts(false);
+            airAttack.TriggerAirAttack(OnAirAttackFinished);
+            return;
         }
 
         if (isJumping) return;
 
         if (Input.GetKeyDown(KeyCode.Space) && IsGrounded())
         {
-            StartCoroutine(JumpSequence());
+            currentJumpRoutine = StartCoroutine(JumpSequence());
         }
     }
 
@@ -95,5 +106,12 @@ public class PlayerJump : MonoBehaviour
                 script.enabled = state;
             }
         }
+    }
+
+    private void OnAirAttackFinished()
+    {
+        Debug.Log("[PlayerJump] Resuming normal control after air attack");
+        ToggleOtherScripts(true);
+        isJumping = false;
     }
 }

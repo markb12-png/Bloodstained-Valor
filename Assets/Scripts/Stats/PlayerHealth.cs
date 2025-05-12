@@ -68,6 +68,12 @@ public class PlayerHealth : MonoBehaviour
 
         lastDamageTime = Time.time; // Reset the timer
 
+        var shake = Camera.main?.GetComponent<CameraShake>();
+        if (shake != null)
+        {
+            shake.Shake();
+        }x
+
         Debug.Log($"[Health] Player took {amount} damage. Current HP: {currentHealth}");
 
         if (currentHealth <= 0 && !isDead)

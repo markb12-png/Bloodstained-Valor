@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Linq;
 using UnityEngine;
@@ -12,7 +13,8 @@ public class PlayerAirAttack : MonoBehaviour
     [SerializeField] private int hitboxDurationFrames = 8;
 
     [Header("Movement")]
-    [SerializeField] private float downwardSpeed = -20f;
+    [SerializeField] private float upwardVelocity = 8f;
+    [SerializeField] private float downwardVelocity = -20f;
 
     [Header("Hitbox")]
     [SerializeField] private GameObject hitboxPrefab;
@@ -20,84 +22,126 @@ public class PlayerAirAttack : MonoBehaviour
 
     private Rigidbody2D rb;
     private GroundDetector groundDetector;
-    private MonoBehaviour[] otherScripts;
     private PlayerJump jumpScript;
-    private bool isAirAttacking;
+    private PlayerFacing facingScript;
+    private AirSwordClashHandler clashHandler;
+    private MonoBehaviour[] otherScripts;
+    private bool isAirAttacking = false;
+    private bool interruptedByClash = false;
 
-    void Start()
+    private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         groundDetector = GetComponent<GroundDetector>();
         jumpScript = GetComponent<PlayerJump>();
+        facingScript = GetComponent<PlayerFacing>();
+        clashHandler = GetComponent<AirSwordClashHandler>();
 
         otherScripts = GetComponents<MonoBehaviour>()
-            .Where(script => script != this && script != groundDetector)
+            .Where(script => script != null && script != this && !(script is GroundDetector))
             .ToArray();
     }
 
-    void Update()
+    public void TriggerAirAttack(Action onComplete)
     {
-        if (!groundDetector.IsGrounded && !isAirAttacking && Input.GetMouseButtonDown(0))
+        if (!isAirAttacking)
         {
-            Debug.Log("[AirAttack] Triggering air attack");
-            StartCoroutine(AirAttackSequence());
+            StartCoroutine(AirAttackSequence(onComplete));
         }
     }
 
-    private IEnumerator AirAttackSequence()
+    public void InterruptBySwordClash()
+    {
+        Debug.Log("[PlayerAirAttack] Interrupted by sword clash.");
+        interruptedByClash = true;
+        StopAllCoroutines();
+        rb.velocity = Vector2.zero;
+        ToggleOtherScripts(false);
+        isAirAttacking = false;
+    }
+
+    private IEnumerator AirAttackSequence(Action onComplete)
     {
         isAirAttacking = true;
+        interruptedByClash = false;
         ToggleOtherScripts(false);
         jumpScript.enabled = false;
 
+        int direction = facingScript != null ? facingScript.GetFacingDirection() : 1;
         int currentFrame = 0;
+        bool hitboxSpawned = false;
 
-        // Windup phase (freeze movement)
         rb.velocity = Vector2.zero;
         while (currentFrame < windupFrames)
         {
+            if (interruptedByClash) yield break;
+            rb.velocity = new Vector2(direction * 2f, upwardVelocity);
             currentFrame++;
             yield return null;
         }
 
-        // Dash downward
-        rb.velocity = new Vector2(0, downwardSpeed);
-        while (currentFrame < windupFrames + dashFrames)
+        currentFrame = 0;
+        rb.velocity = new Vector2(direction * 2f, downwardVelocity);
+
+        GameObject hitboxInstance = null;
+
+        while (currentFrame < dashFrames)
         {
-            if (currentFrame == hitboxSpawnFrame)
+            if (interruptedByClash) yield break;
+
+            if (!hitboxSpawned && windupFrames + currentFrame == hitboxSpawnFrame)
             {
-                Debug.Log("[AirAttack] Spawning vertical hitbox");
-                SpawnHitbox();
+                hitboxInstance = SpawnHitbox(direction);
+                hitboxSpawned = true;
+            }
+
+            if (hitboxInstance != null)
+            {
+                hitboxInstance.transform.position = transform.position + new Vector3(hitboxOffset.x * direction, hitboxOffset.y, 0);
             }
 
             currentFrame++;
             yield return null;
         }
 
-        // Recovery phase (stall in place)
         rb.velocity = Vector2.zero;
-        while (currentFrame < windupFrames + dashFrames + recoveryFrames)
+        for (int i = 0; i < recoveryFrames; i++)
         {
-            currentFrame++;
+            if (interruptedByClash) yield break;
             yield return null;
         }
 
-        ToggleOtherScripts(true);
-        jumpScript.enabled = true;
+        EnableAllScripts();
         isAirAttacking = false;
+        onComplete?.Invoke();
     }
 
-    private void SpawnHitbox()
+    private GameObject SpawnHitbox(int direction)
     {
-        if (hitboxPrefab == null) return;
 
-        Vector2 spawnPosition = (Vector2)transform.position + hitboxOffset;
-        Quaternion rotation = Quaternion.Euler(0, 0, -90); // Face downward
+        var shake = Camera.main?.GetComponent<SlightCameraShake>();
+        if (shake != null)
+        {
+            shake.Shake();
+        }
 
-        GameObject hitbox = Instantiate(hitboxPrefab, spawnPosition, rotation);
+        if (hitboxPrefab == null) return null;
+
+        Vector3 spawnPosition = transform.position + new Vector3(hitboxOffset.x * direction, hitboxOffset.y, 0);
+        Quaternion rotation = Quaternion.Euler(0, 0, -90);
+
+        GameObject hitbox = Instantiate(hitboxPrefab, spawnPosition, rotation, transform);
+
+        HitboxDamage damage = hitbox.GetComponent<HitboxDamage>();
+        if (damage != null)
+        {
+            damage.SetOwner(gameObject);
+        }
+
         Destroy(hitbox, hitboxDurationFrames / 30f);
+        Debug.Log("[AirAttack] Hitbox spawned and following at " + spawnPosition);
 
-        Debug.Log($"[AirAttack] Hitbox spawned at {spawnPosition}");
+        return hitbox;
     }
 
     private void ToggleOtherScripts(bool state)
@@ -107,5 +151,18 @@ public class PlayerAirAttack : MonoBehaviour
             if (script != null)
                 script.enabled = state;
         }
+    }
+
+    private void EnableAllScripts()
+    {
+        foreach (var script in GetComponents<MonoBehaviour>())
+        {
+            if (script != null) script.enabled = true;
+        }
+    }
+
+    public bool IsAirAttacking()
+    {
+        return isAirAttacking;
     }
 }

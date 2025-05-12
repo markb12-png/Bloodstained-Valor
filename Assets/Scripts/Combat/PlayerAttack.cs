@@ -29,6 +29,7 @@ public class PlayerAttack : MonoBehaviour
     private GroundDetector groundDetector;
     private MonoBehaviour[] otherScripts;
     private bool isAttacking;
+    private bool interruptedByClash = false;
 
     private void Start()
     {
@@ -43,35 +44,45 @@ public class PlayerAttack : MonoBehaviour
     {
         if (!isAttacking && groundDetector.IsGrounded && Input.GetMouseButtonDown(0))
         {
-            Debug.Log("[PlayerAttack] Attack started");
             StartCoroutine(AttackMovement());
+
         }
+    }
+
+    public void InterruptBySwordClash()
+    {
+        interruptedByClash = true;
+        StopAllCoroutines();
+        ToggleOtherScripts(false);
+        isAttacking = false;
     }
 
     private IEnumerator AttackMovement()
     {
         isAttacking = true;
+        interruptedByClash = false;
         ToggleOtherScripts(false);
 
         Vector2 dashDirection = transform.localScale.x > 0 ? Vector2.right : Vector2.left;
         int currentFrame = 0;
 
-        // Startup Phase
         rb.velocity = Vector2.zero;
+
         while (currentFrame < startupFrames)
         {
+            if (interruptedByClash) yield break;
             currentFrame++;
             yield return null;
         }
 
-        // Dash Phase
         while (currentFrame < startupFrames + dashFrames)
         {
+            if (interruptedByClash) yield break;
+
             float progress = (currentFrame - startupFrames) / (float)dashFrames;
             float speed = maxDashSpeed * accelerationCurve.Evaluate(progress);
             rb.velocity = dashDirection * speed;
 
-            // Spawn hitbox on correct frame
             if (currentFrame == hitboxSpawnFrame)
             {
                 SpawnHitbox(dashDirection);
@@ -81,10 +92,11 @@ public class PlayerAttack : MonoBehaviour
             yield return null;
         }
 
-        // Slowdown Phase
         float initialSlowdownSpeed = rb.velocity.magnitude;
         while (currentFrame < startupFrames + dashFrames + slowdownFrames)
         {
+            if (interruptedByClash) yield break;
+
             float progress = (currentFrame - startupFrames - dashFrames) / (float)slowdownFrames;
             float speed = Mathf.Lerp(initialSlowdownSpeed, 0, progress * progress);
             rb.velocity = dashDirection * speed;
@@ -92,10 +104,10 @@ public class PlayerAttack : MonoBehaviour
             yield return null;
         }
 
-        // Recovery Phase
         rb.velocity = Vector2.zero;
         while (currentFrame < startupFrames + dashFrames + slowdownFrames + recoveryFrames)
         {
+            if (interruptedByClash) yield break;
             currentFrame++;
             yield return null;
         }
@@ -106,16 +118,21 @@ public class PlayerAttack : MonoBehaviour
 
     private void SpawnHitbox(Vector2 direction)
     {
+
+        var shake = Camera.main?.GetComponent<SlightCameraShake>();
+        if (shake != null)
+        {
+            shake.Shake();
+        }
+
         if (hitboxPrefab == null) return;
 
         Vector2 spawnPosition = (Vector2)transform.position + hitboxOffset * direction;
-
-        GameObject hitbox = Instantiate(hitboxPrefab, spawnPosition, Quaternion.identity);
-
+        GameObject hitbox = Instantiate(hitboxPrefab, spawnPosition, Quaternion.identity, transform); // parented
         HitboxDamage damage = hitbox.GetComponent<HitboxDamage>();
         if (damage != null)
         {
-            damage.SetOwner(gameObject); // Make sure the attacker is ignored
+            damage.SetOwner(gameObject);
         }
 
         Destroy(hitbox, hitboxDurationFrames / 30f);

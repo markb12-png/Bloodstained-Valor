@@ -33,14 +33,14 @@ public class PlayerMovement : MonoBehaviour
        
            if( moveLeft = Input.GetKey(KeyCode.A))
         { 
-            _animator.SetBool("walk left", true);
-            _animator.SetBool("walk right", false);
+            _animator.SetBool("run", true);
+            _animator.SetBool("turn left", true);
         }
         
         if(moveRight = Input.GetKey(KeyCode.D))
         {
-            _animator.SetBool("walk right", true);
-            _animator.SetBool("walk left", false);
+            _animator.SetBool("run", true);
+            _animator.SetBool("turn left", false);
         }
     }
 
@@ -55,17 +55,25 @@ public class PlayerMovement : MonoBehaviour
         if (moveLeft && moveRight)
         {
             horizontalVelocity = 0f; // No movement if both keys are pressed
+            _animator.SetBool("idle", false);
         }
         else if (moveLeft)
         {
+            _animator.SetBool("idle", false);
             horizontalVelocity = -currentSpeed; // Move left
         }
         else if (moveRight)
         {
+            _animator.SetBool("idle", false);
             horizontalVelocity = currentSpeed; // Move right
         }
 
         // Apply velocity to Rigidbody
         rb.velocity = new Vector2(horizontalVelocity, rb.velocity.y);
+        if (horizontalVelocity == 0) 
+        {
+            _animator.SetBool("idle", true);
+            _animator.SetBool("run", false);
+        }
     }
 }
