@@ -18,8 +18,8 @@ TagManager:
   - PlayerHitbox
   - enemyHitboxLayer
   - Invulnerable
-  - 
-  - 
+  - Player
+  - Enemy
   - 
   - 
   - 

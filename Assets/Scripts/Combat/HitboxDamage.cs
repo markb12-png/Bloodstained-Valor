@@ -2,27 +2,34 @@ using UnityEngine;
 
 public class HitboxDamage : MonoBehaviour
 {
-    [SerializeField] private float damageAmount = 25f;
+    [SerializeField] private float damage = 10f;
 
     private GameObject owner;
-    private bool hasDealtDamage = false;
 
-    public GameObject Owner => owner;
-    public bool ClashTriggered { get; set; } = false;
-
-    public void SetOwner(GameObject creator) => owner = creator;
+    public void SetOwner(GameObject newOwner)
+    {
+        owner = newOwner;
+    }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (hasDealtDamage || ClashTriggered) return;
+        // Prevent hitting the one who spawned it
         if (other.gameObject == owner) return;
 
-        var health = other.GetComponent<PlayerHealth>();
-        if (health != null)
+        // Check if target has EnemyHealth
+        EnemyHealth enemy = other.GetComponent<EnemyHealth>();
+        if (enemy != null)
         {
-            health.TakeDamage(damageAmount);
-            hasDealtDamage = true;
-            Destroy(gameObject);
+            enemy.TakeDamage(damage);
+            Debug.Log("[Hitbox] Damaged enemy.");
+        }
+
+        // Optional: also damage player
+        PlayerHealth player = other.GetComponent<PlayerHealth>();
+        if (player != null)
+        {
+            player.TakeDamage(damage);
+            Debug.Log("[Hitbox] Damaged player.");
         }
     }
 }

@@ -72,7 +72,7 @@ public class PlayerHealth : MonoBehaviour
         if (shake != null)
         {
             shake.Shake();
-        }x
+        }
 
         Debug.Log($"[Health] Player took {amount} damage. Current HP: {currentHealth}");
 
