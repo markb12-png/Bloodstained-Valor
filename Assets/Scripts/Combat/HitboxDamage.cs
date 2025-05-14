@@ -2,34 +2,43 @@ using UnityEngine;
 
 public class HitboxDamage : MonoBehaviour
 {
+    [Header("Damage Settings")]
     [SerializeField] private float damage = 10f;
 
-    private GameObject owner;
+    // Used by clash system to identify hitbox source
+    public GameObject Owner { get; private set; }
+    public bool ClashTriggered { get; set; }
 
+    /// <summary> Assigns the GameObject that created this hitbox. </summary>
     public void SetOwner(GameObject newOwner)
     {
-        owner = newOwner;
+        Owner = newOwner;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // Prevent hitting the one who spawned it
-        if (other.gameObject == owner) return;
+        // Prevent hitting the creator of the hitbox
+        if (other.gameObject == Owner)
+            return;
 
-        // Check if target has EnemyHealth
+        // Deal damage to Enemy
         EnemyHealth enemy = other.GetComponent<EnemyHealth>();
         if (enemy != null)
         {
             enemy.TakeDamage(damage);
-            Debug.Log("[Hitbox] Damaged enemy.");
+            Destroy(gameObject); // Destroy hitbox after applying damage
+            return;
         }
 
-        // Optional: also damage player
+        // Deal damage to Player
         PlayerHealth player = other.GetComponent<PlayerHealth>();
         if (player != null)
         {
             player.TakeDamage(damage);
-            Debug.Log("[Hitbox] Damaged player.");
+            Destroy(gameObject); // Destroy hitbox after applying damage
+            return;
         }
+
+        // You can add additional logic for breakables, parry shields, etc. here
     }
 }
