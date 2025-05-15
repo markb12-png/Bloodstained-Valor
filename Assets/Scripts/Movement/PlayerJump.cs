@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Linq;
 using UnityEngine;
 
@@ -6,7 +6,6 @@ public class PlayerJump : MonoBehaviour
 {
     [Header("Jump Settings")]
     public float jumpForce = 10f;
-    public int startupFrames = 4;
     public int lockFramesAfterLanding = 5;
     private bool isJumping = false;
     private Coroutine currentJumpRoutine;
@@ -19,15 +18,18 @@ public class PlayerJump : MonoBehaviour
 
     [Header("References")]
     private Rigidbody2D rb;
+    private Animator animator;
     private PlayerAirAttack airAttack;
     private MonoBehaviour[] otherScripts;
+
+    private bool jumpStartPlaying = false;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
         airAttack = GetComponent<PlayerAirAttack>();
 
-        // Collect all other scripts except GroundDetector and this
         otherScripts = GetComponents<MonoBehaviour>()
             .Where(script => script != null && script != this && script != airAttack && script.enabled)
             .ToArray();
@@ -35,24 +37,27 @@ public class PlayerJump : MonoBehaviour
 
     void Update()
     {
-        Vector2 rayOrigin = (Vector2)transform.position + groundCheckOffset;
-
+        // Debug ray
         if (showDebugRays)
         {
-            Debug.DrawRay(rayOrigin, Vector2.down * groundCheckDistance,
-                IsGrounded() ? Color.green : Color.red);
+            Vector2 rayOrigin = (Vector2)transform.position + groundCheckOffset;
+            Debug.DrawRay(rayOrigin, Vector2.down * groundCheckDistance, IsGrounded() ? Color.green : Color.red);
         }
 
-        // Air attack toggle logic
+        // Enable/disable air attack
         if (airAttack != null)
         {
             airAttack.enabled = !IsGrounded();
         }
 
-        if (isJumping && airAttack != null && !IsGrounded() && Input.GetMouseButtonDown(0))
+        // Air attack override
+        if (isJumping && airAttack != null && !IsGrounded() && Input.GetKeyDown(KeyCode.J))
+
         {
             Debug.Log("[PlayerJump] Interrupted by Air Attack");
-            StopCoroutine(currentJumpRoutine);
+            if (currentJumpRoutine != null)
+                StopCoroutine(currentJumpRoutine);
+
             ToggleOtherScripts(false);
             airAttack.TriggerAirAttack(OnAirAttackFinished);
             return;
@@ -63,6 +68,12 @@ public class PlayerJump : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space) && IsGrounded())
         {
             currentJumpRoutine = StartCoroutine(JumpSequence());
+        }
+
+        // Play fall animation once jump start is done
+        if (!IsGrounded() && !jumpStartPlaying && isJumping)
+        {
+            animator.Play("jump fall");
         }
     }
 
@@ -78,15 +89,34 @@ public class PlayerJump : MonoBehaviour
         isJumping = true;
         ToggleOtherScripts(false);
 
-        for (int i = 0; i < startupFrames; i++)
+        if (animator != null)
         {
-            yield return null;
+            animator.Play("jump start");
+            jumpStartPlaying = true;
+            StartCoroutine(WatchJumpStartAnimation());
         }
 
         rb.velocity = new Vector2(rb.velocity.x, jumpForce);
 
         yield return new WaitUntil(() => !IsGrounded());
         yield return new WaitUntil(() => IsGrounded());
+
+        animator.Play("jump land");
+
+        while (!IsAnimationFinished("jump land"))
+        {
+            yield return null;
+        }
+
+        // Idle transition based on direction (no flip)
+        if (rb.velocity.x < 0)
+        {
+            animator.Play("idle animation left");
+        }
+        else
+        {
+            animator.Play("idle animation right");
+        }
 
         for (int i = 0; i < lockFramesAfterLanding; i++)
         {
@@ -97,14 +127,28 @@ public class PlayerJump : MonoBehaviour
         isJumping = false;
     }
 
+    private IEnumerator WatchJumpStartAnimation()
+    {
+        while (!IsAnimationFinished("jump start"))
+        {
+            yield return null;
+        }
+        jumpStartPlaying = false;
+    }
+
+    private bool IsAnimationFinished(string animationName)
+    {
+        if (animator == null) return true;
+        AnimatorStateInfo info = animator.GetCurrentAnimatorStateInfo(0);
+        return info.IsName(animationName) && info.normalizedTime >= 1f;
+    }
+
     private void ToggleOtherScripts(bool state)
     {
         foreach (var script in otherScripts)
         {
             if (script != null)
-            {
                 script.enabled = state;
-            }
         }
     }
 

@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Linq;
 using UnityEngine;
 
@@ -18,6 +18,7 @@ public class AirSwordClashHandler : MonoBehaviour
 
         if (ownerA == null || ownerB == null) return;
 
+        // Must both be in the air
         if (ownerA.GetComponent<GroundDetector>()?.IsGrounded ?? true) return;
         if (ownerB.GetComponent<GroundDetector>()?.IsGrounded ?? true) return;
 
@@ -37,6 +38,7 @@ public class AirSwordClashHandler : MonoBehaviour
         var health = caster.GetComponent<PlayerHealth>();
         caster.GetComponent<PlayerAirAttack>()?.InterruptBySwordClash();
 
+        // Disable all scripts except GroundDetector, PlayerHealth, ClashHandler
         var toDisable = caster.GetComponents<MonoBehaviour>()
             .Where(s => !(s is GroundDetector || s is PlayerHealth || s is AirSwordClashHandler)).ToList();
         foreach (var s in toDisable) s.enabled = false;
@@ -44,8 +46,10 @@ public class AirSwordClashHandler : MonoBehaviour
         rb.velocity = Vector2.zero;
         for (int i = 0; i < 4; i++) yield return null;
 
-        health?.TakeDamage(10f);
+        // ✅ Apply damage with directional knockback
+        health?.TakeDamage(10f, opponent.transform.position);
 
+        // Arc knockback for visual effect (not physics-based)
         float dir = Mathf.Sign(caster.transform.position.x - opponent.transform.position.x);
         Vector2 arc = new Vector2(4f * dir, 10f);
         for (int i = 0; i < 20; i++) { rb.velocity = arc; yield return null; }

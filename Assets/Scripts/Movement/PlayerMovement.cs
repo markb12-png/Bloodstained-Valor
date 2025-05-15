@@ -1,79 +1,73 @@
-
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    public float moveSpeed = 5f; // Normal movement speed
-    public float sprintSpeed = 10f; // Sprinting speed
-    public Animator _animator;
-    private Rigidbody2D rb;
+    public float walkSpeed = 5f;
+    public float runSpeed = 10f;
+    public Animator animator;
 
-    // Flags to track movement state
-    private bool moveLeft = false;
-    private bool moveRight = false;
+    private Rigidbody2D rb;
+    private string currentAnimation = "";
 
     void Start()
     {
-        rb = GetComponent<Rigidbody2D>(); // Ensure Rigidbody is initialized
+        rb = GetComponent<Rigidbody2D>();
+
+        if (animator == null)
+            animator = GetComponent<Animator>();
     }
 
     void Update()
     {
-        HandleInput(); // Update movement input
+        HandleMovement();
+        HandleAnimation();
     }
 
-    void FixedUpdate()
+    private void HandleMovement()
     {
-        ApplyMovement(); // Apply movement physics
+        float moveInput = 0f;
+        if (Input.GetKey(KeyCode.A)) moveInput -= 1f;
+        if (Input.GetKey(KeyCode.D)) moveInput += 1f;
+
+        float currentSpeed = Input.GetKey(KeyCode.LeftShift) ? runSpeed : walkSpeed;
+        rb.velocity = new Vector2(moveInput * currentSpeed, rb.velocity.y);
     }
 
-    private void HandleInput()
+    private void HandleAnimation()
     {
-        // Capture movement inputs
-       
-           if( moveLeft = Input.GetKey(KeyCode.A))
-        { 
-            _animator.SetBool("run", true);
-            _animator.SetBool("turn left", true);
-        }
-        
-        if(moveRight = Input.GetKey(KeyCode.D))
+        float horizontalSpeed = Mathf.Abs(rb.velocity.x);
+        float direction = Mathf.Sign(rb.velocity.x);
+
+        // If moving, play movement animations and skip idle
+        if (horizontalSpeed > 0f)
         {
-            _animator.SetBool("run", true);
-            _animator.SetBool("turn left", false);
+            if (Mathf.Approximately(horizontalSpeed, walkSpeed))
+            {
+                if (direction > 0)
+                    PlayAnimation("walk animation");
+                else
+                    PlayAnimation("walk animation flipped");
+            }
+            else if (Mathf.Approximately(horizontalSpeed, runSpeed))
+            {
+                if (direction > 0)
+                    PlayAnimation("run animation");
+                else
+                    PlayAnimation("run animations flipped");
+            }
+
+            return; // skip idle logic
         }
+
+        // If completely still, play idle
+        PlayAnimation("idle animation right");
     }
 
-    private void ApplyMovement()
+    private void PlayAnimation(string animName)
     {
-        // Determine movement speed
-        bool isSprinting = Input.GetKey(KeyCode.LeftShift);
-        float currentSpeed = isSprinting ? sprintSpeed : moveSpeed;
+        if (currentAnimation == animName) return;
 
-        // Handle horizontal movement
-        float horizontalVelocity = 0f;
-        if (moveLeft && moveRight)
-        {
-            horizontalVelocity = 0f; // No movement if both keys are pressed
-            _animator.SetBool("idle", false);
-        }
-        else if (moveLeft)
-        {
-            _animator.SetBool("idle", false);
-            horizontalVelocity = -currentSpeed; // Move left
-        }
-        else if (moveRight)
-        {
-            _animator.SetBool("idle", false);
-            horizontalVelocity = currentSpeed; // Move right
-        }
-
-        // Apply velocity to Rigidbody
-        rb.velocity = new Vector2(horizontalVelocity, rb.velocity.y);
-        if (horizontalVelocity == 0) 
-        {
-            _animator.SetBool("idle", true);
-            _animator.SetBool("run", false);
-        }
+        animator.Play(animName);
+        currentAnimation = animName;
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Linq;
 using UnityEngine;
@@ -21,6 +21,7 @@ public class PlayerAirAttack : MonoBehaviour
     [SerializeField] private Vector2 hitboxOffset = new Vector2(0f, -1f);
 
     private Rigidbody2D rb;
+    private Animator animator;
     private GroundDetector groundDetector;
     private PlayerJump jumpScript;
     private PlayerFacing facingScript;
@@ -32,6 +33,7 @@ public class PlayerAirAttack : MonoBehaviour
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
         groundDetector = GetComponent<GroundDetector>();
         jumpScript = GetComponent<PlayerJump>();
         facingScript = GetComponent<PlayerFacing>();
@@ -72,6 +74,12 @@ public class PlayerAirAttack : MonoBehaviour
         bool hitboxSpawned = false;
 
         rb.velocity = Vector2.zero;
+
+        if (animator != null)
+        {
+            animator.Play("knight air attack");
+        }
+
         while (currentFrame < windupFrames)
         {
             if (interruptedByClash) yield break;
@@ -82,7 +90,6 @@ public class PlayerAirAttack : MonoBehaviour
 
         currentFrame = 0;
         rb.velocity = new Vector2(direction * 2f, downwardVelocity);
-
         GameObject hitboxInstance = null;
 
         while (currentFrame < dashFrames)
@@ -105,11 +112,25 @@ public class PlayerAirAttack : MonoBehaviour
         }
 
         rb.velocity = Vector2.zero;
+
         for (int i = 0; i < recoveryFrames; i++)
         {
             if (interruptedByClash) yield break;
             yield return null;
         }
+
+        // ✅ Wait until the animation ends
+        yield return new WaitUntil(() =>
+        {
+            AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+            return state.IsName("knight air attack") && state.normalizedTime >= 1f;
+        });
+
+        // ✅ Transition to idle (left or right)
+        if (rb.velocity.x < 0)
+            animator.Play("idle animation left");
+        else
+            animator.Play("idle animation right");
 
         EnableAllScripts();
         isAirAttacking = false;
@@ -118,7 +139,6 @@ public class PlayerAirAttack : MonoBehaviour
 
     private GameObject SpawnHitbox(int direction)
     {
-
         var shake = Camera.main?.GetComponent<SlightCameraShake>();
         if (shake != null)
         {
@@ -157,7 +177,8 @@ public class PlayerAirAttack : MonoBehaviour
     {
         foreach (var script in GetComponents<MonoBehaviour>())
         {
-            if (script != null) script.enabled = true;
+            if (script != null)
+                script.enabled = true;
         }
     }
 

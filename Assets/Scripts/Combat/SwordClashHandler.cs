@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Linq;
 using UnityEngine;
 
@@ -18,6 +18,7 @@ public class SwordClashHandler : MonoBehaviour
 
         if (ownerA == null || ownerB == null) return;
 
+        // Both must be on the ground
         if (!ownerA.GetComponent<GroundDetector>()?.IsGrounded ?? true) return;
         if (!ownerB.GetComponent<GroundDetector>()?.IsGrounded ?? true) return;
 
@@ -39,16 +40,18 @@ public class SwordClashHandler : MonoBehaviour
         caster.GetComponent<PlayerAttack>()?.InterruptBySwordClash();
         caster.GetComponent<PlayerHalberdAttack>()?.InterruptBySwordClash();
 
+        // Disable all non-essential scripts
         var toDisable = caster.GetComponents<MonoBehaviour>()
             .Where(s => !(s is GroundDetector || s is PlayerHealth || s is SwordClashHandler)).ToList();
         foreach (var s in toDisable) s.enabled = false;
 
         rb.velocity = Vector2.zero;
-
         for (int i = 0; i < 4; i++) yield return null;
 
-        health?.TakeDamage(10f);
+        // ✅ Apply knockback-aware damage
+        health?.TakeDamage(10f, opponent.transform.position);
 
+        // Brief knockback motion (5 frames)
         float dir = Mathf.Sign(caster.transform.position.x - opponent.transform.position.x);
         Vector2 knockback = new Vector2(8f * dir, 0);
         for (int i = 0; i < 5; i++) { rb.velocity = knockback; yield return null; }

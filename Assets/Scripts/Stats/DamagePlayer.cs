@@ -12,7 +12,9 @@ public class DamagePlayer : MonoBehaviour
             if (playerHealth != null)
             {
                 Debug.Log("[Damage] E key pressed. Damaging player...");
-                playerHealth.TakeDamage(damageAmount);
+
+                // Use this object's position as the source of damage
+                playerHealth.TakeDamage(damageAmount, transform.position);
             }
             else
             {

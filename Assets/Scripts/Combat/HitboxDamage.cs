@@ -30,11 +30,11 @@ public class HitboxDamage : MonoBehaviour
             return;
         }
 
-        // Deal damage to Player
+        // Deal damage to Player with knockback
         PlayerHealth player = other.GetComponent<PlayerHealth>();
         if (player != null)
         {
-            player.TakeDamage(damage);
+            player.TakeDamage(damage, transform.position); // Pass hitbox position
             Destroy(gameObject); // Destroy hitbox after applying damage
             return;
         }

@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -19,6 +19,7 @@ public class PlayerDash : MonoBehaviour
     private bool canDash = true;
 
     private Rigidbody2D rb;
+    private Animator animator;
 
     private PlayerMovement movementScript;
     private PlayerJump jumpScript;
@@ -30,6 +31,7 @@ public class PlayerDash : MonoBehaviour
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
         movementScript = GetComponent<PlayerMovement>();
         jumpScript = GetComponent<PlayerJump>();
         attackScript = GetComponent<PlayerAttack>();
@@ -62,8 +64,13 @@ public class PlayerDash : MonoBehaviour
         }
 
         DisableScripts();
-
         gameObject.layer = LayerMask.NameToLayer(invulnerableLayerName);
+
+        // ✅ Play dash animation
+        if (animator != null)
+        {
+            animator.Play("knight dash");
+        }
 
         int inputDirection = Input.GetKey(KeyCode.D) ? 1 : -1;
         Vector2 dashDirection = new Vector2(inputDirection, 0);
@@ -83,6 +90,12 @@ public class PlayerDash : MonoBehaviour
         gameObject.layer = originalLayer;
 
         EnableScripts();
+
+        // ✅ Return to idle animation after dash
+        if (animator != null)
+        {
+            animator.Play("idle animation right");
+        }
 
         yield return new WaitForSeconds(dashCooldown);
         canDash = true;
@@ -105,9 +118,10 @@ public class PlayerDash : MonoBehaviour
 
     private void UpdateDashSlider()
     {
-        if (dashSlider == null) return;
-
-        dashSlider.value = (float)currentDashCharges / maxDashCharges;
+        if (dashSlider != null)
+        {
+            dashSlider.value = (float)currentDashCharges / maxDashCharges;
+        }
     }
 
     private void DisableScripts()
