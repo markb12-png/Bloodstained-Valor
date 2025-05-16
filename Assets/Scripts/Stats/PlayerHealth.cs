@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Collections;
@@ -10,45 +10,45 @@ public class PlayerHealth : MonoBehaviour
     [SerializeField] private float maxHealth = 100f;
     [SerializeField] private Slider healthSlider;
 
-    [Header("UI")]
-    [SerializeField] private DeathUIController deathUIController;
+    [Header("Regen Settings")]
+    [SerializeField] private float regenerationAmount = 5f;
+    [SerializeField] private float regenerationInterval = 1f;
+    [SerializeField] private float delayBeforeRegeneration = 4f;
 
-    [Header("Stun Settings")]
-    [SerializeField] private float stunDuration = 0.5f;
-    [SerializeField] private float knockbackForce = 15f;
+    [Header("Death UI")]
+    [SerializeField] private GameObject deathOverlay;
+    [SerializeField] private GameObject deathText;
 
     private float currentHealth;
     private bool isDead = false;
+    private float lastDamageTime;
+    private Coroutine regenerationCoroutine;
 
     private Rigidbody2D rb;
     private Animator animator;
-    private MonoBehaviour[] allScripts;
-    private GroundDetector groundDetector;
+    private MonoBehaviour[] playerScripts;
 
-    private Coroutine regenerationCoroutine;
-    private float regenerationAmount = 5f;
-    private float regenerationInterval = 1f;
-    private float delayBeforeRegeneration = 4f;
-
-    private float lastDamageTime;
-
-    void Start()
+    private void Awake()
     {
-        rb = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>();
-        groundDetector = GetComponent<GroundDetector>();
+        // Guaranteed: Hide the death UI before anything else
+        if (deathOverlay != null) deathOverlay.SetActive(false);
+        if (deathText != null) deathText.SetActive(false);
+    }
 
+    private void Start()
+    {
         currentHealth = maxHealth;
         UpdateHealthUI();
 
-        allScripts = GetComponents<MonoBehaviour>()
-            .Where(script => script != this && !(script is GroundDetector))
-            .ToArray();
+        rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
 
-        Debug.Log($"[Health] Player initialized with {currentHealth} HP.");
+        playerScripts = GetComponents<MonoBehaviour>()
+            .Where(script => script != this)
+            .ToArray();
     }
 
-    void Update()
+    private void Update()
     {
         if (!isDead && currentHealth < maxHealth)
         {
@@ -56,13 +56,6 @@ public class PlayerHealth : MonoBehaviour
             {
                 regenerationCoroutine = StartCoroutine(RegenerateHealth());
             }
-        }
-
-        if (currentHealth <= 0 && !isDead)
-        {
-            isDead = true;
-            StopHealthRegeneration();
-            StartCoroutine(HandleDeath());
         }
     }
 
@@ -75,58 +68,79 @@ public class PlayerHealth : MonoBehaviour
         currentHealth -= amount;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         UpdateHealthUI();
+
         lastDamageTime = Time.time;
 
-        // Knockback direction: away from hitbox
+        // Knockback from hit direction
         Vector2 knockbackDir = (transform.position - (Vector3)hitSourcePosition).normalized;
-        rb.velocity = Vector2.zero;
-        rb.AddForce(knockbackDir * knockbackForce, ForceMode2D.Impulse);
+        rb.AddForce(knockbackDir * 10f, ForceMode2D.Impulse);
 
-        // Camera shake (optional)
+        // Camera shake
         var shake = Camera.main?.GetComponent<CameraShake>();
-        if (shake != null) shake.Shake();
-
-        // Log
-        Debug.Log($"[Health] Player took {amount} damage. Current HP: {currentHealth}");
+        if (shake != null)
+        {
+            shake.Shake();
+        }
 
         if (currentHealth > 0)
         {
-            StartCoroutine(Stun());
+            animator.Play("knight stun");
+            StartCoroutine(StunRoutine());
         }
-        else if (!isDead)
+        else
         {
             isDead = true;
-            StopHealthRegeneration();
             StartCoroutine(HandleDeath());
         }
     }
 
-    private IEnumerator Stun()
+    private IEnumerator StunRoutine()
     {
-        Debug.Log("[Health] Stunned.");
-        animator.Play("knight stun");
-        ToggleOtherScripts(false);
-        yield return new WaitForSeconds(stunDuration);
-        ToggleOtherScripts(true);
+        var groundDetector = GetComponent<GroundDetector>();
+        var toDisable = GetComponents<MonoBehaviour>()
+            .Where(m => m != this && m != groundDetector)
+            .ToList();
+
+        foreach (var script in toDisable)
+            script.enabled = false;
+
+        yield return new WaitForSeconds(0.5f);
+
+        if (rb.velocity.x < 0)
+            animator.Play("idle animation left");
+        else
+            animator.Play("idle animation right");
+
+        foreach (var script in toDisable)
+            script.enabled = true;
+
+        // FIX: Reset jump state so the player can jump after stun
+        var jump = GetComponent<PlayerJump>();
+        if (jump != null)
+            jump.ResetJumpState();
     }
+
 
     private IEnumerator HandleDeath()
     {
-        Debug.Log("[Health] Player died. Playing death animation.");
-        animator.Play("knight death animation");
+        isDead = true;
+        rb.velocity = Vector2.zero;
+        rb.bodyType = RigidbodyType2D.Static;
 
-        if (rb != null)
+        foreach (var script in playerScripts)
         {
-            rb.velocity = Vector2.zero;
-            rb.bodyType = RigidbodyType2D.Static;
+            if (script != null)
+                script.enabled = false;
         }
 
-        ToggleOtherScripts(false);
-
-        if (deathUIController != null)
+        if (animator != null)
         {
-            deathUIController.TriggerDeathUI();
+            animator.Play("knight death");
         }
+
+        // Activate death UI elements on death
+        if (deathOverlay != null) deathOverlay.SetActive(true);
+        if (deathText != null) deathText.SetActive(true);
 
         yield return new WaitForSeconds(5f);
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
@@ -139,7 +153,6 @@ public class PlayerHealth : MonoBehaviour
         {
             if (Time.time - lastDamageTime < delayBeforeRegeneration)
             {
-                Debug.Log("[Health] Regeneration interrupted.");
                 regenerationCoroutine = null;
                 yield break;
             }
@@ -151,6 +164,7 @@ public class PlayerHealth : MonoBehaviour
             yield return new WaitForSeconds(regenerationInterval);
         }
 
+        Debug.Log("[Health] Regeneration complete.");
         regenerationCoroutine = null;
     }
 
@@ -160,6 +174,7 @@ public class PlayerHealth : MonoBehaviour
         {
             StopCoroutine(regenerationCoroutine);
             regenerationCoroutine = null;
+            Debug.Log("[Health] Regeneration stopped.");
         }
     }
 
@@ -168,14 +183,6 @@ public class PlayerHealth : MonoBehaviour
         if (healthSlider != null)
         {
             healthSlider.value = currentHealth / maxHealth;
-        }
-    }
-
-    private void ToggleOtherScripts(bool state)
-    {
-        foreach (var script in allScripts)
-        {
-            if (script != null) script.enabled = state;
         }
     }
 }

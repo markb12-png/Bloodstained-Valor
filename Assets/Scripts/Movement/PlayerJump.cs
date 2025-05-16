@@ -52,7 +52,6 @@ public class PlayerJump : MonoBehaviour
 
         // Air attack override
         if (isJumping && airAttack != null && !IsGrounded() && Input.GetKeyDown(KeyCode.J))
-
         {
             Debug.Log("[PlayerJump] Interrupted by Air Attack");
             if (currentJumpRoutine != null)
@@ -157,5 +156,18 @@ public class PlayerJump : MonoBehaviour
         Debug.Log("[PlayerJump] Resuming normal control after air attack");
         ToggleOtherScripts(true);
         isJumping = false;
+    }
+
+    // FIX: Add this to reset the jump state after being hit
+    public void ResetJumpState()
+    {
+        isJumping = false;
+        jumpStartPlaying = false;
+        if (currentJumpRoutine != null)
+        {
+            StopCoroutine(currentJumpRoutine);
+            currentJumpRoutine = null;
+        }
+        ToggleOtherScripts(true);
     }
 }

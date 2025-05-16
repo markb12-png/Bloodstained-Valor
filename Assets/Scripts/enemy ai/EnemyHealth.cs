@@ -1,49 +1,89 @@
-using System.Linq;
 using UnityEngine;
+using UnityEngine.UI;
+using System.Collections;
+using System.Linq;
 
 public class EnemyHealth : MonoBehaviour
 {
     [Header("Health Settings")]
     [SerializeField] private float maxHealth = 50f;
+    [SerializeField] private Slider healthSlider;
+
+    [Header("Stun Settings")]
+    [SerializeField] private float stunDuration = 0.5f;
+    [SerializeField] private float knockbackForce = 10f;
+
     private float currentHealth;
     private bool isDead = false;
 
     private MonoBehaviour[] enemyScripts;
     private Rigidbody2D rb;
+    private Animator animator; // <-- Add this
+
+    private void Awake()
+    {
+        if (healthSlider != null) healthSlider.gameObject.SetActive(true);
+    }
 
     private void Start()
     {
         currentHealth = maxHealth;
+        UpdateHealthUI();
+
         rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>(); // <-- Get Animator
 
         enemyScripts = GetComponents<MonoBehaviour>()
             .Where(script => script != this)
             .ToArray();
-
-        Debug.Log($"[EnemyHealth] Initialized with {currentHealth} HP.");
     }
 
-    public void TakeDamage(float amount)
+    // Requires both amount and hitSourcePosition!
+    public void TakeDamage(float amount, Vector2 hitSourcePosition)
     {
         if (isDead) return;
 
         currentHealth -= amount;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
-        Debug.Log($"[EnemyHealth] Took {amount} damage. Current HP: {currentHealth}");
+        UpdateHealthUI();
 
-        if (currentHealth <= 0)
+        // Knockback: always away from attacker, with a slight upward angle
+        if (rb != null)
         {
-            Die();
+            float direction = Mathf.Sign(transform.position.x - hitSourcePosition.x);
+            Vector2 knockbackDir = new Vector2(direction, 0.3f).normalized;
+            rb.AddForce(knockbackDir * knockbackForce, ForceMode2D.Impulse);
+        }
+
+        if (currentHealth > 0)
+        {
+            StartCoroutine(StunRoutine());
+        }
+        else
+        {
+            isDead = true;
+            StartCoroutine(HandleDeath());
         }
     }
 
-    private void Die()
+    private IEnumerator StunRoutine()
     {
-        if (isDead) return;
+        var toDisable = GetComponents<MonoBehaviour>()
+            .Where(m => m != this)
+            .ToList();
+
+        foreach (var script in toDisable)
+            script.enabled = false;
+
+        yield return new WaitForSeconds(stunDuration);
+
+        foreach (var script in toDisable)
+            script.enabled = true;
+    }
+
+    private IEnumerator HandleDeath()
+    {
         isDead = true;
-
-        Debug.Log("[EnemyHealth] Enemy died.");
-
         if (rb != null)
         {
             rb.velocity = Vector2.zero;
@@ -53,12 +93,30 @@ public class EnemyHealth : MonoBehaviour
         foreach (var script in enemyScripts)
         {
             if (script != null)
-            {
                 script.enabled = false;
-            }
         }
 
-        // Optional: destroy or pool enemy object
-        // Destroy(gameObject);
+        // --- PLAY THE DEATH ANIMATION ---
+        if (animator != null)
+        {
+            animator.Play("knight death");
+        }
+
+        if (healthSlider != null)
+            healthSlider.gameObject.SetActive(false);
+
+        // Optionally wait for the animation to finish (uncomment below if desired):
+        // yield return new WaitForSeconds(animator.GetCurrentAnimatorStateInfo(0).length);
+
+        // Destroy(gameObject); // Uncomment if you want the enemy to disappear
+        yield return null;
+    }
+
+    private void UpdateHealthUI()
+    {
+        if (healthSlider != null)
+        {
+            healthSlider.value = currentHealth / maxHealth;
+        }
     }
 }

@@ -20,15 +20,16 @@ public class PlayerAirAttack : MonoBehaviour
     [SerializeField] private GameObject hitboxPrefab;
     [SerializeField] private Vector2 hitboxOffset = new Vector2(0f, -1f);
 
+    // Cooldown fields removed
+
     private Rigidbody2D rb;
     private Animator animator;
     private GroundDetector groundDetector;
     private PlayerJump jumpScript;
     private PlayerFacing facingScript;
-    private AirSwordClashHandler clashHandler;
     private MonoBehaviour[] otherScripts;
+
     private bool isAirAttacking = false;
-    private bool interruptedByClash = false;
 
     private void Start()
     {
@@ -37,7 +38,6 @@ public class PlayerAirAttack : MonoBehaviour
         groundDetector = GetComponent<GroundDetector>();
         jumpScript = GetComponent<PlayerJump>();
         facingScript = GetComponent<PlayerFacing>();
-        clashHandler = GetComponent<AirSwordClashHandler>();
 
         otherScripts = GetComponents<MonoBehaviour>()
             .Where(script => script != null && script != this && !(script is GroundDetector))
@@ -46,26 +46,15 @@ public class PlayerAirAttack : MonoBehaviour
 
     public void TriggerAirAttack(Action onComplete)
     {
-        if (!isAirAttacking)
+        if (!isAirAttacking) // Only check this now
         {
             StartCoroutine(AirAttackSequence(onComplete));
         }
     }
 
-    public void InterruptBySwordClash()
-    {
-        Debug.Log("[PlayerAirAttack] Interrupted by sword clash.");
-        interruptedByClash = true;
-        StopAllCoroutines();
-        rb.velocity = Vector2.zero;
-        ToggleOtherScripts(false);
-        isAirAttacking = false;
-    }
-
     private IEnumerator AirAttackSequence(Action onComplete)
     {
         isAirAttacking = true;
-        interruptedByClash = false;
         ToggleOtherScripts(false);
         jumpScript.enabled = false;
 
@@ -82,7 +71,6 @@ public class PlayerAirAttack : MonoBehaviour
 
         while (currentFrame < windupFrames)
         {
-            if (interruptedByClash) yield break;
             rb.velocity = new Vector2(direction * 2f, upwardVelocity);
             currentFrame++;
             yield return null;
@@ -94,8 +82,6 @@ public class PlayerAirAttack : MonoBehaviour
 
         while (currentFrame < dashFrames)
         {
-            if (interruptedByClash) yield break;
-
             if (!hitboxSpawned && windupFrames + currentFrame == hitboxSpawnFrame)
             {
                 hitboxInstance = SpawnHitbox(direction);
@@ -115,18 +101,15 @@ public class PlayerAirAttack : MonoBehaviour
 
         for (int i = 0; i < recoveryFrames; i++)
         {
-            if (interruptedByClash) yield break;
             yield return null;
         }
 
-        // ✅ Wait until the animation ends
         yield return new WaitUntil(() =>
         {
             AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
             return state.IsName("knight air attack") && state.normalizedTime >= 1f;
         });
 
-        // ✅ Transition to idle (left or right)
         if (rb.velocity.x < 0)
             animator.Play("idle animation left");
         else
@@ -135,6 +118,8 @@ public class PlayerAirAttack : MonoBehaviour
         EnableAllScripts();
         isAirAttacking = false;
         onComplete?.Invoke();
+
+        // (No cooldown anymore)
     }
 
     private GameObject SpawnHitbox(int direction)
@@ -168,8 +153,10 @@ public class PlayerAirAttack : MonoBehaviour
     {
         foreach (var script in otherScripts)
         {
-            if (script != null)
-                script.enabled = state;
+            // Never disable PlayerHealth!
+            if (script == null || script is PlayerHealth)
+                continue;
+            script.enabled = state;
         }
     }
 
@@ -177,8 +164,10 @@ public class PlayerAirAttack : MonoBehaviour
     {
         foreach (var script in GetComponents<MonoBehaviour>())
         {
-            if (script != null)
-                script.enabled = true;
+            // Never disable PlayerHealth!
+            if (script == null || script is PlayerHealth)
+                continue;
+            script.enabled = true;
         }
     }
 

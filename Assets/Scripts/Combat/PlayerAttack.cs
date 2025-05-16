@@ -25,6 +25,10 @@ public class PlayerAttack : MonoBehaviour
     [SerializeField] private GameObject hitboxPrefab;
     [SerializeField] private Vector2 hitboxOffset = new Vector2(1f, 0);
 
+    [Header("Cooldown")]
+    [SerializeField] private float cooldownTime = 2f;
+    private bool canAttack = true;
+
     private Rigidbody2D rb;
     private Animator animator;
     private GroundDetector groundDetector;
@@ -46,7 +50,7 @@ public class PlayerAttack : MonoBehaviour
 
     private void Update()
     {
-        if (!isAttacking && groundDetector.IsGrounded && Input.GetKeyDown(KeyCode.J))
+        if (!isAttacking && canAttack && groundDetector.IsGrounded && Input.GetKeyDown(KeyCode.J))
         {
             StartCoroutine(AttackSequence());
         }
@@ -65,6 +69,7 @@ public class PlayerAttack : MonoBehaviour
         isAttacking = true;
         interruptedByClash = false;
         ToggleOtherScripts(false);
+        canAttack = false;
 
         Vector2 dashDirection = transform.localScale.x > 0 ? Vector2.right : Vector2.left;
 
@@ -122,14 +127,12 @@ public class PlayerAttack : MonoBehaviour
             yield return null;
         }
 
-        // ✅ Wait for attack animation to fully finish
         yield return new WaitUntil(() =>
         {
             AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
             return state.IsName("knight sword attack") && state.normalizedTime >= 1f;
         });
 
-        // ✅ Transition to idle based on horizontal direction
         if (rb.velocity.x < 0)
             animator.Play("idle animation left");
         else
@@ -137,25 +140,23 @@ public class PlayerAttack : MonoBehaviour
 
         ToggleOtherScripts(true);
         isAttacking = false;
+
+        // ✅ Start cooldown
+        yield return new WaitForSeconds(cooldownTime);
+        canAttack = true;
     }
 
     private void SpawnHitbox(Vector2 direction)
     {
         var shake = Camera.main?.GetComponent<SlightCameraShake>();
-        if (shake != null)
-        {
-            shake.Shake();
-        }
+        if (shake != null) shake.Shake();
 
         if (hitboxPrefab == null) return;
 
         Vector2 spawnPosition = (Vector2)transform.position + hitboxOffset * direction;
         GameObject hitbox = Instantiate(hitboxPrefab, spawnPosition, Quaternion.identity, transform);
         HitboxDamage damage = hitbox.GetComponent<HitboxDamage>();
-        if (damage != null)
-        {
-            damage.SetOwner(gameObject);
-        }
+        if (damage != null) damage.SetOwner(gameObject);
 
         Destroy(hitbox, hitboxDurationFrames / 30f);
     }
@@ -164,8 +165,11 @@ public class PlayerAttack : MonoBehaviour
     {
         foreach (var script in otherScripts)
         {
-            if (script != null)
-                script.enabled = state;
+            // Never disable PlayerHealth
+            if (script == null || script is PlayerHealth)
+                continue;
+
+            script.enabled = state;
         }
     }
 }
