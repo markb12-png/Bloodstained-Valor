@@ -15,6 +15,7 @@ public class EnemyHealth : MonoBehaviour
 
     private float currentHealth;
     private bool isDead = false;
+    public bool closeToPlayer = false;
 
     private MonoBehaviour[] enemyScripts;
     private Rigidbody2D rb;
@@ -38,6 +39,17 @@ public class EnemyHealth : MonoBehaviour
             .ToArray();
     }
 
+    public void OnTriggerStay2D(Collider2D collider)
+    {
+        if (collider.tag == "Player") closeToPlayer = true;
+        else closeToPlayer = false;
+    }
+
+    public void OnTriggerExit2D(Collider2D collider)
+    {
+        if (collider.tag == "Player") closeToPlayer = false;
+    }
+
     // Requires both amount and hitSourcePosition!
     public void TakeDamage(float amount, Vector2 hitSourcePosition)
     {
@@ -51,6 +63,7 @@ public class EnemyHealth : MonoBehaviour
         if (rb != null)
         {
             float direction = Mathf.Sign(transform.position.x - hitSourcePosition.x);
+            if (closeToPlayer) direction = -direction;
             Vector2 knockbackDir = new Vector2(direction, 0.3f).normalized;
             rb.AddForce(knockbackDir * knockbackForce, ForceMode2D.Impulse);
         }

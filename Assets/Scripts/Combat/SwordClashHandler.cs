@@ -17,6 +17,7 @@ public class SwordClashHandler : MonoBehaviour
 
         var ownerA = hitbox?.Owner;
         var ownerB = otherClash.hitbox?.Owner;
+        Debug.Log(ownerA, ownerB);
         if (ownerA == null || ownerB == null) return;
 
         Debug.Log($"[SwordClash][CLASH] {gameObject.name} (owner: {ownerA.name}) vs {other.gameObject.name} (owner: {ownerB.name}) at frame {Time.frameCount}");

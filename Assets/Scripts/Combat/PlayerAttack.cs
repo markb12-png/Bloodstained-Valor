@@ -34,7 +34,7 @@ public class PlayerAttack : MonoBehaviour
     private GroundDetector groundDetector;
     private MonoBehaviour[] otherScripts;
 
-    private bool isAttacking = false;
+    [SerializeField] private bool isAttacking = false;
     private bool interruptedByClash = false;
 
     private void Start()
@@ -50,7 +50,7 @@ public class PlayerAttack : MonoBehaviour
 
     private void Update()
     {
-        if (!isAttacking && canAttack && groundDetector.IsGrounded && Input.GetKeyDown(KeyCode.R))
+        if (!isAttacking && canAttack && groundDetector.IsGrounded && Input.GetKeyDown(KeyCode.J))
         {
             StartCoroutine(AttackSequence());
         }
