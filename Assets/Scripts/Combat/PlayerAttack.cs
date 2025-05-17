@@ -50,7 +50,7 @@ public class PlayerAttack : MonoBehaviour
 
     private void Update()
     {
-        if (!isAttacking && canAttack && groundDetector.IsGrounded && Input.GetKeyDown(KeyCode.J))
+        if (!isAttacking && canAttack && groundDetector.IsGrounded && Input.GetKeyDown(KeyCode.R))
         {
             StartCoroutine(AttackSequence());
         }
@@ -148,8 +148,8 @@ public class PlayerAttack : MonoBehaviour
 
     private void SpawnHitbox(Vector2 direction)
     {
-        var shake = Camera.main?.GetComponent<SlightCameraShake>();
-        if (shake != null) shake.Shake();
+        var shake = Camera.main?.GetComponent<CameraShake>();
+        if (shake != null) shake.StartShake(0.1f, 0.2f);
 
         if (hitboxPrefab == null) return;
 

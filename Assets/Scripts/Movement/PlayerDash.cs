@@ -25,9 +25,6 @@ public class PlayerDash : MonoBehaviour
     private PlayerJump jumpScript;
     private PlayerAttack attackScript;
 
-    private int originalLayer;
-    [SerializeField] private string invulnerableLayerName = "Invulnerable";
-
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -37,7 +34,6 @@ public class PlayerDash : MonoBehaviour
         attackScript = GetComponent<PlayerAttack>();
 
         currentDashCharges = maxDashCharges;
-        originalLayer = gameObject.layer;
 
         UpdateDashSlider();
     }
@@ -63,10 +59,6 @@ public class PlayerDash : MonoBehaviour
             StartCoroutine(RefillCharges());
         }
 
-        DisableScripts();
-        gameObject.layer = LayerMask.NameToLayer(invulnerableLayerName);
-
-        // ✅ Play dash animation
         if (animator != null)
         {
             animator.Play("knight dash");
@@ -87,11 +79,7 @@ public class PlayerDash : MonoBehaviour
         }
 
         rb.velocity = Vector2.zero;
-        gameObject.layer = originalLayer;
 
-        EnableScripts();
-
-        // ✅ Return to idle animation after dash
         if (animator != null)
         {
             animator.Play("idle animation right");
@@ -122,24 +110,5 @@ public class PlayerDash : MonoBehaviour
         {
             dashSlider.value = (float)currentDashCharges / maxDashCharges;
         }
-    }
-
-    private void DisableScripts()
-    {
-        if (movementScript != null) movementScript.enabled = false;
-        if (jumpScript != null) jumpScript.enabled = false;
-        if (attackScript != null) attackScript.enabled = false;
-    }
-
-    private void EnableScripts()
-    {
-        if (movementScript != null) movementScript.enabled = true;
-        if (jumpScript != null) jumpScript.enabled = true;
-        if (attackScript != null) attackScript.enabled = true;
-    }
-
-    public int GetCurrentCharges()
-    {
-        return currentDashCharges;
     }
 }

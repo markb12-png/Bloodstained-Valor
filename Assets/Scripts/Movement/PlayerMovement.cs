@@ -4,59 +4,55 @@ public class PlayerMovement : MonoBehaviour
 {
     public float walkSpeed = 5f;
     public float runSpeed = 10f;
+    public float speed;
+
     public Animator animator;
+    public Rigidbody2D rb;
 
-    private Rigidbody2D rb;
-    private string currentAnimation = "";
-
-    void Start()
-    {
-        rb = GetComponent<Rigidbody2D>();
-
-        if (animator == null)
-            animator = GetComponent<Animator>();
-    }
+    private string currentAnimation;
 
     void Update()
     {
         HandleMovement();
         HandleAnimation();
+
+        if (Input.GetKey(KeyCode.LeftShift)) {
+            speed = runSpeed;
+        }
+        else speed = walkSpeed;
     }
 
-    private void HandleMovement()
-    {
-        float moveInput = 0f;
-        if (Input.GetKey(KeyCode.A)) moveInput -= 1f;
-        if (Input.GetKey(KeyCode.D)) moveInput += 1f;
+    private void HandleMovement() {
 
-        float currentSpeed = Input.GetKey(KeyCode.LeftShift) ? runSpeed : walkSpeed;
-        rb.velocity = new Vector2(moveInput * currentSpeed, rb.velocity.y);
+        float move = 0f;
+        if (Input.GetKey(KeyCode.A)) move -= 1f;
+        if (Input.GetKey(KeyCode.D)) move += 1f;
+
+        rb.velocity = new Vector2(move * speed, rb.velocity.y);
     }
 
-    private void HandleAnimation()
-    {
+    private void HandleAnimation() {
+
         float horizontalSpeed = Mathf.Abs(rb.velocity.x);
         float direction = Mathf.Sign(rb.velocity.x);
 
-        // If moving, play movement animations and skip idle
-        if (horizontalSpeed > 0f)
-        {
-            if (Mathf.Approximately(horizontalSpeed, walkSpeed))
-            {
+        if (horizontalSpeed > 0f) {
+            if (Mathf.Approximately(horizontalSpeed, walkSpeed)) {
+                Player.state = Player.Move.isWalking;
                 if (direction > 0)
                     PlayAnimation("walk animation");
                 else
                     PlayAnimation("walk animation flipped");
             }
-            else if (Mathf.Approximately(horizontalSpeed, runSpeed))
-            {
+            else if (Mathf.Approximately(horizontalSpeed, runSpeed)) {
+                Player.state = Player.Move.isRunning;
                 if (direction > 0)
                     PlayAnimation("run animation");
                 else
                     PlayAnimation("run animations flipped");
             }
 
-            return; // skip idle logic
+            return;
         }
 
         // If completely still, play idle

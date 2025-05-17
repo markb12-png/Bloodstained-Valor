@@ -79,7 +79,7 @@ public class PlayerHealth : MonoBehaviour
         var shake = Camera.main?.GetComponent<CameraShake>();
         if (shake != null)
         {
-            shake.Shake();
+            shake.StartShake(0.3f, 0.2f);
         }
 
         if (currentHealth > 0)

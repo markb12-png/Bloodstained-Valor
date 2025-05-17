@@ -14,7 +14,6 @@ public class PlayerJump : MonoBehaviour
     public float groundCheckDistance = 0.2f;
     public Vector2 groundCheckOffset = new Vector2(0, -0.5f);
     public LayerMask groundLayer;
-    public bool showDebugRays = true;
 
     [Header("References")]
     private Rigidbody2D rb;
@@ -37,12 +36,8 @@ public class PlayerJump : MonoBehaviour
 
     void Update()
     {
-        // Debug ray
-        if (showDebugRays)
-        {
-            Vector2 rayOrigin = (Vector2)transform.position + groundCheckOffset;
-            Debug.DrawRay(rayOrigin, Vector2.down * groundCheckDistance, IsGrounded() ? Color.green : Color.red);
-        }
+
+        if (isJumping) Player.state = Player.Move.isJumping;
 
         // Enable/disable air attack
         if (airAttack != null)

@@ -2,13 +2,8 @@ using UnityEngine;
 
 public class PlayerFacing : MonoBehaviour
 {
-    private Rigidbody2D rb;
+    public Rigidbody2D rb;
     private float lastDirection = 1f; // 1 = right, -1 = left
-
-    void Start()
-    {
-        rb = GetComponent<Rigidbody2D>();
-    }
 
     void Update()
     {

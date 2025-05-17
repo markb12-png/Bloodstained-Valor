@@ -5,11 +5,9 @@ public class SceneMusicPlayer : MonoBehaviour
     public AudioClip sceneMusic;
     private AudioSource audioSource;
 
-    void Start()
-    {
+    void Start() {
         audioSource = GetComponent<AudioSource>();
-        if (audioSource == null)
-        {
+        if (audioSource == null) {
             audioSource = gameObject.AddComponent<AudioSource>();
         }
 
