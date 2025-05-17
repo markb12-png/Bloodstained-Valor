@@ -3,9 +3,7 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags:
-  - Ground
-  - Hitbox
+  tags: []
   layers:
   - Default
   - TransparentFX
@@ -13,13 +11,13 @@ TagManager:
   - 
   - Water
   - UI
-  - Interactable
-  - Ground
-  - PlayerHitbox
-  - enemyHitboxLayer
-  - Invulnerable
-  - Player
-  - Enemy
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
   - 
   - 
   - 
@@ -40,6 +38,12 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: Background
+    uniqueID: 2424153585
+    locked: 0
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Foreground
+    uniqueID: 3928980359
     locked: 0

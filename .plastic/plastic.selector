@@ -1,0 +1,4 @@
+repository "Bloodstained-Valor/Bloodstained-Valor@1375665007342@cloud"
+  path "/"
+    br "/main"
+    co "/main"
