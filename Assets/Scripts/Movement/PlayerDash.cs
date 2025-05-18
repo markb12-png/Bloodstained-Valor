@@ -40,9 +40,10 @@ public class PlayerDash : MonoBehaviour
 
     private void Update()
     {
-        bool movingInput = Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D);
+        bool movingInput = Input.GetAxisRaw("Horizontal") != 0;
 
-        if (Input.GetKeyDown(KeyCode.C) && canDash && currentDashCharges > 0 && movingInput)
+        // Dash input using Input Manager
+        if (Input.GetButtonDown("Dash") && canDash && currentDashCharges > 0 && movingInput)
         {
             StartCoroutine(Dash());
         }
@@ -64,7 +65,7 @@ public class PlayerDash : MonoBehaviour
             animator.Play("knight dash");
         }
 
-        int inputDirection = Input.GetKey(KeyCode.D) ? 1 : -1;
+        int inputDirection = Input.GetAxisRaw("Horizontal") > 0 ? 1 : -1;
         Vector2 dashDirection = new Vector2(inputDirection, 0);
         float elapsedTime = 0f;
 
@@ -93,12 +94,21 @@ public class PlayerDash : MonoBehaviour
     {
         isRefilling = true;
 
+        // Cache reference to UISFX
+        UISFX uiSfx = FindObjectOfType<UISFX>();
+
         while (currentDashCharges < maxDashCharges)
         {
             yield return new WaitForSeconds(chargeRefillTime);
             currentDashCharges++;
             Debug.Log($"[PlayerDash] Charge refilled. Current charges: {currentDashCharges}");
             UpdateDashSlider();
+
+            // Play dash recharge sound
+            if (uiSfx != null)
+            {
+                uiSfx.PlayDashRecharge();
+            }
         }
 
         isRefilling = false;

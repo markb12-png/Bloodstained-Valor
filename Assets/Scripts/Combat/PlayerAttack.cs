@@ -50,7 +50,8 @@ public class PlayerAttack : MonoBehaviour
 
     private void Update()
     {
-        if (!isAttacking && canAttack && groundDetector.IsGrounded && Input.GetKeyDown(KeyCode.J))
+        // ✅ Use Input Manager for attack input
+        if (!isAttacking && canAttack && groundDetector.IsGrounded && Input.GetButtonDown("Attack"))
         {
             StartCoroutine(AttackSequence());
         }
@@ -143,7 +144,6 @@ public class PlayerAttack : MonoBehaviour
         ToggleOtherScripts(true);
         isAttacking = false;
 
-        // ✅ Start cooldown
         yield return new WaitForSeconds(cooldownTime);
         canAttack = true;
     }
@@ -167,7 +167,6 @@ public class PlayerAttack : MonoBehaviour
     {
         foreach (var script in otherScripts)
         {
-            // Never disable PlayerHealth
             if (script == null || script is PlayerHealth)
                 continue;
 

@@ -9,6 +9,8 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: CartoonCoffee_Embers_002-Basic-[1.0]
   m_Shader: {fileID: 4800000, guid: 6b10eff4bdd4fe145b220a0c2cdbe77d, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _ENABLEALPHATINT_ON
   - _ENABLEUVDISTORT_ON
@@ -20,6 +22,7 @@ Material:
   m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
+  m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -92,7 +95,7 @@ Material:
     - _UVDistortFade: 0.1
     - _UVDistortSpace: 0
     m_Colors:
-    - _AlphaTintColor: {r: 2.9960785, g: 0.8480729, b: 0, a: 0}
+    - _AlphaTintColor: {r: 4, g: 0.14855796, b: 0, a: 0}
     - _BlackTintColor: {r: 1, g: 0, b: 0, a: 0}
     - _CustomFadeAddColor: {r: 2.9960785, g: 2.9960785, b: 2.9960785, a: 0}
     - _CustomFadeNoiseScale: {r: 1, g: 1, b: 0, a: 0}

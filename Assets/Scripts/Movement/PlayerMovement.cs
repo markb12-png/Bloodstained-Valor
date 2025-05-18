@@ -16,35 +16,41 @@ public class PlayerMovement : MonoBehaviour
         HandleMovement();
         HandleAnimation();
 
-        if (Input.GetKey(KeyCode.LeftShift)) {
+        // Use Input Manager for sprint
+        if (Input.GetButton("Sprint"))
+        {
             speed = runSpeed;
         }
-        else speed = walkSpeed;
+        else
+        {
+            speed = walkSpeed;
+        }
     }
 
-    private void HandleMovement() {
-
-        float move = 0f;
-        if (Input.GetKey(KeyCode.A)) move -= 1f;
-        if (Input.GetKey(KeyCode.D)) move += 1f;
-
+    private void HandleMovement()
+    {
+        // Use horizontal axis from Input Manager (supports keyboard + controller)
+        float move = Input.GetAxisRaw("Horizontal"); // Returns -1, 0, or 1
         rb.velocity = new Vector2(move * speed, rb.velocity.y);
     }
 
-    private void HandleAnimation() {
-
+    private void HandleAnimation()
+    {
         float horizontalSpeed = Mathf.Abs(rb.velocity.x);
         float direction = Mathf.Sign(rb.velocity.x);
 
-        if (horizontalSpeed > 0f) {
-            if (Mathf.Approximately(horizontalSpeed, walkSpeed)) {
+        if (horizontalSpeed > 0f)
+        {
+            if (Mathf.Approximately(horizontalSpeed, walkSpeed))
+            {
                 Player.state = Player.Move.isWalking;
                 if (direction > 0)
                     PlayAnimation("walk animation");
                 else
                     PlayAnimation("walk animation flipped");
             }
-            else if (Mathf.Approximately(horizontalSpeed, runSpeed)) {
+            else if (Mathf.Approximately(horizontalSpeed, runSpeed))
+            {
                 Player.state = Player.Move.isRunning;
                 if (direction > 0)
                     PlayAnimation("run animation");
@@ -55,7 +61,6 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        // If completely still, play idle
         PlayAnimation("idle animation right");
     }
 
