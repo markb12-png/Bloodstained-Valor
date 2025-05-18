@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class HitboxDamage : MonoBehaviour {
     [Header("Damage Settings")]
-    [SerializeField] private float damage = 10f;
+    [SerializeField] private float damage = 20f;
 
     public GameObject Owner { get; private set; }
     public bool ClashTriggered { get; set; }

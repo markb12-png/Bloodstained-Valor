@@ -36,8 +36,8 @@ public class PlayerJump : MonoBehaviour
 
     void Update()
     {
-
-        if (isJumping) Player.state = Player.Move.isJumping;
+        if (isJumping)
+            Player.state = Player.Move.isJumping;
 
         // Enable/disable air attack
         if (airAttack != null)
@@ -45,8 +45,8 @@ public class PlayerJump : MonoBehaviour
             airAttack.enabled = !IsGrounded();
         }
 
-        // Air attack override
-        if (isJumping && airAttack != null && !IsGrounded() && Input.GetKeyDown(KeyCode.J))
+        // Air attack override using Input Manager
+        if (isJumping && airAttack != null && !IsGrounded() && Input.GetButtonDown("AirAtt"))
         {
             Debug.Log("[PlayerJump] Interrupted by Air Attack");
             if (currentJumpRoutine != null)
@@ -59,7 +59,8 @@ public class PlayerJump : MonoBehaviour
 
         if (isJumping) return;
 
-        if (Input.GetKeyDown(KeyCode.Space) && IsGrounded())
+        // Jump using Input Manager
+        if (Input.GetButtonDown("Jump") && IsGrounded())
         {
             currentJumpRoutine = StartCoroutine(JumpSequence());
         }

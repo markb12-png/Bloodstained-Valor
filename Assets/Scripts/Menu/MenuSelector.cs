@@ -16,39 +16,52 @@ public class MenuSelector : MonoBehaviour
     private AudioSource audioSource;
 
     private int selectedIndex = 0;
-    private bool isLocked = false; // Locks input during selection
+    private bool isLocked = false;
+    private float inputCooldown = 0.2f; // Prevents fast repeated input
+    private float lastInputTime;
 
     private void Start()
     {
         audioSource = gameObject.AddComponent<AudioSource>();
+        lastInputTime = -inputCooldown;
     }
 
     private void Update()
     {
         if (isLocked || loadGameMenu.activeSelf)
         {
-            CheckForEscapeKey(); // Allow Escape key to close submenus
+            CheckForCancelInput();
             return;
         }
 
-        if (Input.GetKeyDown(KeyCode.DownArrow))
+        // Combine keyboard + D-pad input
+        float vertical = Input.GetAxisRaw("Select") + Input.GetAxisRaw("SelectDpad");
+
+        // Move selector up/down (with cooldown)
+        if (Time.time - lastInputTime > inputCooldown)
         {
-            selectedIndex = (selectedIndex + 1) % menuButtons.Length;
-            UpdateSelectorPosition();
-            PlaySound(moveSound);
-        }
-        else if (Input.GetKeyDown(KeyCode.UpArrow))
-        {
-            selectedIndex = (selectedIndex - 1 + menuButtons.Length) % menuButtons.Length;
-            UpdateSelectorPosition();
-            PlaySound(moveSound);
+            if (vertical < -0.5f)
+            {
+                selectedIndex = (selectedIndex + 1) % menuButtons.Length;
+                UpdateSelectorPosition();
+                PlaySound(moveSound);
+                lastInputTime = Time.time;
+            }
+            else if (vertical > 0.5f)
+            {
+                selectedIndex = (selectedIndex - 1 + menuButtons.Length) % menuButtons.Length;
+                UpdateSelectorPosition();
+                PlaySound(moveSound);
+                lastInputTime = Time.time;
+            }
         }
 
-        if (Input.GetKeyDown(KeyCode.Return)) // When player presses Enter
+        // Confirm selection
+        if (Input.GetButtonDown("Confirm"))
         {
-            isLocked = true; // Lock input
+            isLocked = true;
             PlaySound(selectSound);
-            StartCoroutine(TriggerHighlightEffect()); // Start highlight effect before executing action
+            StartCoroutine(TriggerHighlightEffect());
         }
     }
 
@@ -59,35 +72,31 @@ public class MenuSelector : MonoBehaviour
 
     private IEnumerator TriggerHighlightEffect()
     {
-        highlightTexts[selectedIndex].gameObject.SetActive(true); // Show highlight effect
-
-        yield return new WaitForSeconds(1f); // Wait for 1 second
-
-        highlightTexts[selectedIndex].gameObject.SetActive(false); // Hide highlight effect
-
-        ExecuteMenuFunction(); // Execute selected option
-        isLocked = false;      // Unlock input after action completes
+        highlightTexts[selectedIndex].gameObject.SetActive(true);
+        yield return new WaitForSeconds(1f);
+        highlightTexts[selectedIndex].gameObject.SetActive(false);
+        ExecuteMenuFunction();
+        isLocked = false;
     }
 
     private void ExecuteMenuFunction()
     {
         switch (selectedIndex)
         {
-            case 0: // New Game
+            case 0:
                 menuFunctions.StartNewGame();
                 break;
-            case 1: // Quit Game
+            case 1:
                 menuFunctions.QuitGame();
                 break;
         }
     }
 
-    private void CheckForEscapeKey()
+    private void CheckForCancelInput()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
+        if (Input.GetButtonDown("MenuCancel") && loadGameMenu.activeSelf)
         {
-            if (loadGameMenu.activeSelf)
-                loadGameMenu.SetActive(false); // Close Load Game menu
+            loadGameMenu.SetActive(false);
         }
     }
 
