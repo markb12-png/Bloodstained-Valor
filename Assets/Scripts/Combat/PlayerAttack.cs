@@ -54,6 +54,8 @@ public class PlayerAttack : MonoBehaviour
         {
             StartCoroutine(AttackSequence());
         }
+
+        isAttacking = Player.isAttacking;
     }
 
     public void InterruptBySwordClash()

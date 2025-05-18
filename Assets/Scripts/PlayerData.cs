@@ -6,6 +6,7 @@ public class Player : MonoBehaviour {
 
     // Player states
     public static bool isGrounded;
+    public static bool isAttacking;
     public static Move state = Move.idle;
 
     void Start() {
