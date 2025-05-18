@@ -2029,7 +2029,12 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 3.6, y: 5.31}
   m_EdgeRadius: 0
---- !u!114 &547423523
+--- !u!95 &547423525 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 944855697056527618, guid: 17b5d5532616e620cb5be8e9c71b61b0, type: 3}
+  m_PrefabInstance: {fileID: 3718402079548071693}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &547423531
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2038,9 +2043,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 547423514}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 50db3c8c7d01a8b4c927db914642305c, type: 3}
+  m_Script: {fileID: 11500000, guid: 723e0ba09a76257e89f878d783818238, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  playerHealth: {fileID: 1899511802}
+  playerPos: {fileID: 1899511797}
+  playerDistance: {x: 0, y: 0}
+  xDistance: 0
+  playerDistanceMin: 3
+  playerDistanceOpt: 3
+  playerDistanceMax: 8
+  playerDetected: 0
+  hasAttacked: 0
+  speed: 0.1
+  animator: {fileID: 547423525}
 --- !u!1 &557764184
 GameObject:
   m_ObjectHideFlags: 0
@@ -6266,18 +6282,6 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 4.48, y: 5.6}
   m_EdgeRadius: 0
---- !u!114 &1899511826
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 121627534}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 50db3c8c7d01a8b4c927db914642305c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &1915608537 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6549300644331692621, guid: 61fa23ce1d5194d23a065c76776fa03b, type: 3}
@@ -7317,9 +7321,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4184854926942235613, guid: 09c371e21c1a6bb548ef5e4adec92b34, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1899511825}
-    - targetCorrespondingSourceObject: {fileID: 4184854926942235613, guid: 09c371e21c1a6bb548ef5e4adec92b34, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1899511826}
   m_SourcePrefab: {fileID: 100100000, guid: 09c371e21c1a6bb548ef5e4adec92b34, type: 3}
 --- !u!1001 &3718402079548071693
 PrefabInstance:
@@ -7399,7 +7400,7 @@ PrefabInstance:
       addedObject: {fileID: 547423522}
     - targetCorrespondingSourceObject: {fileID: 5351239374635729614, guid: 17b5d5532616e620cb5be8e9c71b61b0, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 547423523}
+      addedObject: {fileID: 547423531}
   m_SourcePrefab: {fileID: 100100000, guid: 17b5d5532616e620cb5be8e9c71b61b0, type: 3}
 --- !u!1001 &6204264012434581501
 PrefabInstance:
