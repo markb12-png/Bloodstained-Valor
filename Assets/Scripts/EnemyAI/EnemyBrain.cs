@@ -102,11 +102,19 @@ public class EnemyMovement : MonoBehaviour
     {
         if (playerDistance.x > 0)
         {
+            // Player is to the right, so walk left (away)
             PlayAnimation("walk animation");
             transform.position -= new Vector3(speed, 0, 0);
         }
+        else if (playerDistance.x < 0)
+        {
+            // Player is to the left, so walk right (away)
+            PlayAnimation("walk animation flipped");
+            transform.position += new Vector3(speed, 0, 0);
+        }
         else
         {
+            // Player is directly above/below, pick a direction (default: right)
             PlayAnimation("walk animation flipped");
             transform.position += new Vector3(speed, 0, 0);
         }
@@ -128,10 +136,20 @@ public class EnemyMovement : MonoBehaviour
     {
         if (playerDistance.x > playerDistanceOpt && !Player.isAttacking)
         {
+            // Player is to the right, so walk right (toward)
             PlayAnimation("walk animation");
             transform.position += new Vector3(speed, 0, 0);
         }
-        else PlayAnimation("idle animation right");
+        else if (playerDistance.x < -playerDistanceOpt && !Player.isAttacking)
+        {
+            // Player is to the left, so walk left (toward)
+            PlayAnimation("walk animation flipped");
+            transform.position -= new Vector3(speed, 0, 0);
+        }
+        else
+        {
+            PlayAnimation("idle animation right");
+        }
     }
     #endregion
 
