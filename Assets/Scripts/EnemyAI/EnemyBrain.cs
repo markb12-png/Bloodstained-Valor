@@ -20,6 +20,7 @@ public class EnemyMovement : MonoBehaviour
     public bool hasAttacked;
 
     public float speed = 0.1f;
+    public Vector2 dashDirection;
 
     private string currentAnimation;
     public Animator animator;
@@ -30,6 +31,32 @@ public class EnemyMovement : MonoBehaviour
 
     private enum State { none, offensive, defensive };
     private State state = State.none;
+
+
+    [Header("Hitbox")]
+    [SerializeField] private GameObject hitboxPrefab;
+    [SerializeField] private Vector2 hitboxOffset = new Vector2(1f, 0);
+    [SerializeField] private int hitboxSpawnFrame = 10;
+    [SerializeField] private int hitboxDurationFrames = 8;
+
+    public float frame;
+
+    private struct AttackFrames
+    {
+        public readonly int anticipation;
+        public readonly int dash;
+        public readonly int recovery;
+
+        public AttackFrames(int startupFrames, int dashFrames, int recoveryFrames)
+        {
+            anticipation = startupFrames;
+            dash = dashFrames;
+            recovery = recoveryFrames;
+        }
+    }
+
+    private AttackFrames sweepFrames = new AttackFrames(9, 6, 12);
+
 
 
     #region Logic
@@ -154,18 +181,50 @@ public class EnemyMovement : MonoBehaviour
     #endregion
 
 
-    #region Other methods
+    #region Attacks
     private void Attack()
     {
-        if (!hasAttacked)
-        {
-            PlayAnimation("knight sword attack");
-            playerHealth.TakeDamage(20, transform.position);
-            hasAttacked = true;
-        }
-        else return;
+        dashDirection = transform.localScale.x > 0 ? Vector2.right : Vector2.left;
+        Sweep();
+        // if (!hasAttacked)
+        // {
+        //     int randomAttack = Random.Range(0, 2);
+        //     if (randomAttack == 0)
+        //     {
+        //         Sweep();
+        //     }
+        //     else if (randomAttack == 1)
+        //     {
+        //         Slash();
+
+        //     }
+        //     hasAttacked = true;
+        // }
+        // else return;
     }
 
+    private void Sweep()
+    {
+        SpawnHitbox(dashDirection);
+    }
+
+    private void SpawnHitbox(Vector2 direction)
+    {
+        var shake = Camera.main?.GetComponent<CameraShake>();
+        if (shake != null) shake.StartShake(0.1f, 0.2f);
+
+        if (hitboxPrefab == null) return;
+
+        Vector2 spawnPosition = (Vector2)transform.position + hitboxOffset * direction;
+        GameObject hitbox = Instantiate(hitboxPrefab, spawnPosition, Quaternion.identity, transform);
+        HitboxDamage damage = hitbox.GetComponent<HitboxDamage>();
+        if (damage != null) damage.SetOwner(gameObject);
+
+        Destroy(hitbox, hitboxDurationFrames / 30f);
+    }
+    #endregion
+
+    #region Animations
     private void PlayAnimation(string animName)
     {
         if (currentAnimation == animName) return;
@@ -173,5 +232,11 @@ public class EnemyMovement : MonoBehaviour
         animator.Play(animName);
         currentAnimation = animName;
     }
+
+    private void HandleAnimations()
+    {
+        
+    }
+
     #endregion
 }
