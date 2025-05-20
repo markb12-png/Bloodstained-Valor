@@ -61,7 +61,7 @@ public class PlayerAttack : MonoBehaviour
     {
         isAttacking = true;
         interruptedByClash = false;
-        // ToggleOtherScripts(false);
+        ToggleOtherScripts(false);
         Player.canAttack = false;
 
         Vector2 dashDirection = transform.localScale.x > 0 ? Vector2.right : Vector2.left;

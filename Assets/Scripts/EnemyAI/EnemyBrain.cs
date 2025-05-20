@@ -4,6 +4,7 @@ public class EnemyBrain : MonoBehaviour
 {
 
     public PlayerHealth playerHealth;
+    public EnemyHealth enemyHealth;
 
     public Transform playerPos;
 
@@ -61,20 +62,24 @@ public class EnemyBrain : MonoBehaviour
     #region Logic
     void Update()
     {
-        playerDistance = playerPos.position - transform.position;
-        xDistance = Mathf.Abs(playerDistance.x);
-
-        int duration = Random.Range(3, 7);
-        UpdateState(duration); // every 5 seconds
-        switch (state)
+        if (!enemyHealth.isDead)
         {
-            case State.defensive:
-                Defensive();
-                break;
-            case State.offensive:
-                Offensive();
-                break;
+            playerDistance = playerPos.position - transform.position;
+            xDistance = Mathf.Abs(playerDistance.x);
+
+            int duration = Random.Range(3, 7);
+            UpdateState(duration); // every 5 seconds
+            switch (state)
+            {
+                case State.defensive:
+                    Defensive();
+                    break;
+                case State.offensive:
+                    Offensive();
+                    break;
+            }
         }
+        else return;
     }
     #endregion
 

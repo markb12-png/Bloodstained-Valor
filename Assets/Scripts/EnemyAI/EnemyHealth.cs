@@ -14,7 +14,7 @@ public class EnemyHealth : MonoBehaviour
     [SerializeField] private float knockbackForce = 10f;
 
     private float currentHealth;
-    private bool isDead = false;
+    public bool isDead = false;
     public bool closeToPlayer = false;
 
     private MonoBehaviour[] enemyScripts;
@@ -63,7 +63,7 @@ public class EnemyHealth : MonoBehaviour
         if (rb != null)
         {
             float direction = Mathf.Sign(transform.position.x - hitSourcePosition.x);
-            // if (closeToPlayer) direction = -direction;
+            if (closeToPlayer) direction = -direction;
             Vector2 knockbackDir = new Vector2(direction, 0.3f).normalized;
             rb.AddForce(knockbackDir * knockbackForce, ForceMode2D.Impulse);
         }
