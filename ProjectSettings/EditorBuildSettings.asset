@@ -8,13 +8,7 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/SampleScene.unity
     guid: 8c9cfa26abfee488c85f1582747f6a02
-  - enabled: 0
+  - enabled: 1
     path: Assets/Scenes/sword clash test.unity
     guid: 17e5b1f10984cf44b91287bc01b17142
-  - enabled: 1
-    path: Assets/Scenes/basement.unity
-    guid: e6335ba4df3dd9b45b8a74a24b90c599
-  - enabled: 1
-    path: Assets/Scenes/title screen.unity
-    guid: 1e7cb7aa99f93fd4ca50cc2d6e1e0692
   m_configObjects: {}

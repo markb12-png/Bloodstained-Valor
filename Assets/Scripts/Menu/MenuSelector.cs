@@ -13,7 +13,6 @@ public class MenuSelector : MonoBehaviour
 
     public AudioClip moveSound;    // Sound when moving selector
     public AudioClip selectSound;  // Sound when selecting option
-    public AudioClip cancelSound;  // Sound when cancel is used
     private AudioSource audioSource;
 
     private int selectedIndex = 0;
@@ -29,11 +28,7 @@ public class MenuSelector : MonoBehaviour
 
     private void Update()
     {
-        if (isLocked)
-            return;
-
-        // If a menu is open, allow cancel key to close it
-        if (loadGameMenu.activeSelf || (menuFunctions != null && menuFunctions.settingsPanel.activeSelf))
+        if (isLocked || loadGameMenu.activeSelf)
         {
             CheckForCancelInput();
             return;
@@ -92,9 +87,6 @@ public class MenuSelector : MonoBehaviour
                 menuFunctions.StartNewGame();
                 break;
             case 1:
-                menuFunctions.OpenSettings();
-                break;
-            case 2:
                 menuFunctions.QuitGame();
                 break;
         }
@@ -102,18 +94,9 @@ public class MenuSelector : MonoBehaviour
 
     private void CheckForCancelInput()
     {
-        if (Input.GetButtonDown("Cancel"))
+        if (Input.GetButtonDown("MenuCancel") && loadGameMenu.activeSelf)
         {
-            PlaySound(cancelSound);
-
-            if (loadGameMenu.activeSelf)
-            {
-                loadGameMenu.SetActive(false);
-            }
-            else if (menuFunctions != null && menuFunctions.settingsPanel.activeSelf)
-            {
-                menuFunctions.CloseSettings();
-            }
+            loadGameMenu.SetActive(false);
         }
     }
 
