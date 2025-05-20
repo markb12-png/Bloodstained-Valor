@@ -25,6 +25,9 @@ public class PlayerDash : MonoBehaviour
     private PlayerJump jumpScript;
     private PlayerAttack attackScript;
 
+    private int originalLayer;
+    [SerializeField] private string invulnerableLayerName = "Invulnerable";
+
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -34,15 +37,17 @@ public class PlayerDash : MonoBehaviour
         attackScript = GetComponent<PlayerAttack>();
 
         currentDashCharges = maxDashCharges;
+        originalLayer = gameObject.layer;
 
         UpdateDashSlider();
     }
 
     private void Update()
     {
-        bool movingInput = Input.GetAxisRaw("Horizontal") != 0;
+        // Support both keyboard and controller horizontal input
+        bool movingInput = Mathf.Abs(Input.GetAxisRaw("Horizontal")) > 0.1f;
 
-        // Dash input using Input Manager
+        // Input Manager based dash input
         if (Input.GetButtonDown("Dash") && canDash && currentDashCharges > 0 && movingInput)
         {
             StartCoroutine(Dash());
@@ -60,13 +65,19 @@ public class PlayerDash : MonoBehaviour
             StartCoroutine(RefillCharges());
         }
 
+        DisableScripts();
+        gameObject.layer = LayerMask.NameToLayer(invulnerableLayerName);
+
         if (animator != null)
         {
             animator.Play("knight dash");
         }
 
-        int inputDirection = Input.GetAxisRaw("Horizontal") > 0 ? 1 : -1;
-        Vector2 dashDirection = new Vector2(inputDirection, 0);
+        // Use horizontal axis to determine dash direction
+        float input = Input.GetAxisRaw("Horizontal");
+        int direction = input >= 0 ? 1 : -1;
+
+        Vector2 dashDirection = new Vector2(direction, 0);
         float elapsedTime = 0f;
 
         while (elapsedTime < dashDuration)
@@ -80,11 +91,17 @@ public class PlayerDash : MonoBehaviour
         }
 
         rb.velocity = Vector2.zero;
+        gameObject.layer = originalLayer;
 
         if (animator != null)
         {
-            animator.Play("idle animation right");
+            if (direction < 0)
+                animator.Play("idle animation left");
+            else
+                animator.Play("idle animation right");
         }
+
+        EnableScripts();
 
         yield return new WaitForSeconds(dashCooldown);
         canDash = true;
@@ -94,21 +111,12 @@ public class PlayerDash : MonoBehaviour
     {
         isRefilling = true;
 
-        // Cache reference to UISFX
-        UISFX uiSfx = FindObjectOfType<UISFX>();
-
         while (currentDashCharges < maxDashCharges)
         {
             yield return new WaitForSeconds(chargeRefillTime);
             currentDashCharges++;
             Debug.Log($"[PlayerDash] Charge refilled. Current charges: {currentDashCharges}");
             UpdateDashSlider();
-
-            // Play dash recharge sound
-            if (uiSfx != null)
-            {
-                uiSfx.PlayDashRecharge();
-            }
         }
 
         isRefilling = false;
@@ -116,9 +124,26 @@ public class PlayerDash : MonoBehaviour
 
     private void UpdateDashSlider()
     {
-        if (dashSlider != null)
-        {
-            dashSlider.value = (float)currentDashCharges / maxDashCharges;
-        }
+        if (dashSlider == null) return;
+        dashSlider.value = (float)currentDashCharges / maxDashCharges;
+    }
+
+    private void DisableScripts()
+    {
+        if (movementScript != null) movementScript.enabled = false;
+        if (jumpScript != null) jumpScript.enabled = false;
+        if (attackScript != null) attackScript.enabled = false;
+    }
+
+    private void EnableScripts()
+    {
+        if (movementScript != null) movementScript.enabled = true;
+        if (jumpScript != null) jumpScript.enabled = true;
+        if (attackScript != null) attackScript.enabled = true;
+    }
+
+    public int GetCurrentCharges()
+    {
+        return currentDashCharges;
     }
 }
