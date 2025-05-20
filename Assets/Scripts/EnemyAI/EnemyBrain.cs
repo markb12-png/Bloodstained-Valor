@@ -1,9 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics.Tracing;
 using UnityEngine;
 
-public class EnemyMovement : MonoBehaviour
+public class EnemyBrain : MonoBehaviour
 {
 
     public PlayerHealth playerHealth;
@@ -57,7 +54,9 @@ public class EnemyMovement : MonoBehaviour
 
     private AttackFrames sweepFrames = new AttackFrames(9, 6, 12);
 
-
+    // Add these new fields
+    private bool isAttacking = false;
+    private float attackAnimationDuration = 0.7f; // Set this to match your animation length in seconds
 
     #region Logic
     void Update()
@@ -113,13 +112,19 @@ public class EnemyMovement : MonoBehaviour
     #region Defensive
     private void Defensive()
     {
+        if (isAttacking) return; // Don't interrupt attack animation
+        
         if (xDistance < playerDistanceMin && !Player.isAttacking)
         {
             Attack();
-            WalkAway();
+            if (!isAttacking) // Only walk away if not attacking
+            {
+                WalkAway();
+            }
         }
         else
         {
+            // Reset hasAttacked when not in attack range
             hasAttacked = false;
             PlayAnimation("idle animation right");
         }
@@ -152,11 +157,26 @@ public class EnemyMovement : MonoBehaviour
     #region Offensive
     private void Offensive()
     {
+        if (isAttacking) return; // Don't interrupt attack animation
+        
         if (xDistance < playerDistanceMax && !Player.isAttacking)
         {
-            WalkToward();
+            if (xDistance <= playerDistanceOpt && !hasAttacked)
+            {
+                // When in optimal attack range
+                Attack();
+            }
+            else if (!isAttacking) // Only walk toward if not attacking
+            {
+                WalkToward();
+            }
         }
-        else PlayAnimation("idle animation right");
+        else 
+        {
+            PlayAnimation("idle animation right");
+            // Reset attack state when out of range
+            hasAttacked = false;
+        }
     }
 
     private void WalkToward()
@@ -184,26 +204,38 @@ public class EnemyMovement : MonoBehaviour
     #region Attacks
     private void Attack()
     {
-        dashDirection = transform.localScale.x > 0 ? Vector2.right : Vector2.left;
-        Sweep();
-        // if (!hasAttacked)
-        // {
-        //     int randomAttack = Random.Range(0, 2);
-        //     if (randomAttack == 0)
-        //     {
-        //         Sweep();
-        //     }
-        //     else if (randomAttack == 1)
-        //     {
-        //         Slash();
+        if (!hasAttacked && !isAttacking)
+        {
+            // Determine direction based on player position
+            bool facingRight = playerDistance.x > 0;
+            transform.localScale = new Vector3(facingRight ? Mathf.Abs(transform.localScale.x) : -Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+            
+            dashDirection = facingRight ? Vector2.right : Vector2.left;
+            Sweep();
+            hasAttacked = true;
+            isAttacking = true;
+            
+            // Reset isAttacking flag after animation finishes
+            Invoke("FinishAttack", attackAnimationDuration);
+        }
+    }
 
-        //     }
-        //     hasAttacked = true;
-        // }
-        // else return;
+    private void FinishAttack()
+    {
+        isAttacking = false;
+        Player.canAttack = true;
     }
 
     private void Sweep()
+    {
+        // Play sweep attack animation
+        PlayAnimation("knight sword attack"); // Your attack animation
+        
+        // We could use a coroutine or animation events for better timing
+        Invoke("SpawnHitboxWithDelay", hitboxSpawnFrame / 30f); // Convert frames to seconds
+    }
+
+    private void SpawnHitboxWithDelay()
     {
         SpawnHitbox(dashDirection);
     }
@@ -227,6 +259,10 @@ public class EnemyMovement : MonoBehaviour
     #region Animations
     private void PlayAnimation(string animName)
     {
+        // Don't interrupt attack animations with other animations
+        if (isAttacking && currentAnimation == "knight sword attack" && animName != "knight sword attack") 
+            return;
+            
         if (currentAnimation == animName) return;
 
         animator.Play(animName);

@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 4192847386445341323}
   - component: {fileID: 5904069561212922876}
   - component: {fileID: 6395955939248036387}
-  - component: {fileID: -2239406315558784881}
   m_Layer: 8
   m_Name: hitbox 1 (2)
   m_TagString: Hitbox
@@ -173,15 +172,3 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   damage: 20
---- !u!114 &-2239406315558784881
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2509472626631414782}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 50db3c8c7d01a8b4c927db914642305c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 

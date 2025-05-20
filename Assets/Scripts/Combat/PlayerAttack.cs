@@ -27,7 +27,6 @@ public class PlayerAttack : MonoBehaviour
 
     [Header("Cooldown")]
     [SerializeField] private float cooldownTime = 2f;
-    private bool canAttack = true;
 
     private Rigidbody2D rb;
     private Animator animator;
@@ -51,28 +50,19 @@ public class PlayerAttack : MonoBehaviour
     private void Update()
     {
         // ✅ Use Input Manager for attack input
-        if (!isAttacking && canAttack && groundDetector.IsGrounded && Input.GetButtonDown("Attack"))
+        if (!isAttacking && Player.canAttack && groundDetector.IsGrounded && Input.GetButtonDown("Attack"))
         {
             StartCoroutine(AttackSequence());
         }
-
         isAttacking = Player.isAttacking;
-    }
-
-    public void InterruptBySwordClash()
-    {
-        interruptedByClash = true;
-        StopAllCoroutines();
-        ToggleOtherScripts(false);
-        isAttacking = false;
     }
 
     private IEnumerator AttackSequence()
     {
         isAttacking = true;
         interruptedByClash = false;
-        ToggleOtherScripts(false);
-        canAttack = false;
+        // ToggleOtherScripts(false);
+        Player.canAttack = false;
 
         Vector2 dashDirection = transform.localScale.x > 0 ? Vector2.right : Vector2.left;
 
@@ -145,7 +135,7 @@ public class PlayerAttack : MonoBehaviour
         isAttacking = false;
 
         yield return new WaitForSeconds(cooldownTime);
-        canAttack = true;
+        Player.canAttack = true;
     }
 
     private void SpawnHitbox(Vector2 direction)

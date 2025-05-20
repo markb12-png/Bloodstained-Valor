@@ -2049,7 +2049,7 @@ MonoBehaviour:
   speed: 0.1
   dashDirection: {x: 0, y: 0}
   animator: {fileID: 306205591}
-  hitboxPrefab: {fileID: 0}
+  hitboxPrefab: {fileID: 2509472626631414782, guid: 460561004482452418cbc40ed10301c9, type: 3}
   hitboxOffset: {x: 1, y: 0}
   hitboxSpawnFrame: 10
   hitboxDurationFrames: 8
@@ -11155,6 +11155,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1980072252228563376, guid: 17b5d5532616e620cb5be8e9c71b61b0, type: 3}
+      propertyPath: maxHealth
+      value: 400
+      objectReference: {fileID: 0}
     - target: {fileID: 3831596819198501375, guid: 17b5d5532616e620cb5be8e9c71b61b0, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -12339,7 +12343,8 @@ PrefabInstance:
       propertyPath: groundLayer.m_Bits
       value: 64
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4197186118350305274, guid: 09c371e21c1a6bb548ef5e4adec92b34, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
