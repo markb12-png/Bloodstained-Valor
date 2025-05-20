@@ -62,7 +62,7 @@ public class EnemyBrain : MonoBehaviour
     #region Logic
     void Update()
     {
-        if (!enemyHealth.isDead)
+        if (!enemyHealth.isDead && !enemyHealth.isInDeathblowState)
         {
             playerDistance = playerPos.position - transform.position;
             xDistance = Mathf.Abs(playerDistance.x);

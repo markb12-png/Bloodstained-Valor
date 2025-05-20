@@ -12,14 +12,21 @@ public class EnemyHealth : MonoBehaviour
     [Header("Stun Settings")]
     [SerializeField] private float stunDuration = 0.5f;
     [SerializeField] private float knockbackForce = 10f;
-
+    
+    [Header("Deathblow Settings")]
+    [SerializeField] private Color deathblowColor = new Color(0.8f, 0.2f, 0.2f, 1f); // Red tint for deathblow state
+    [SerializeField] private Color normalHealthColor = new Color(0.2f, 0.8f, 0.2f, 1f); // Green for normal health
+    
     private float currentHealth;
     public bool isDead = false;
+    public bool isInDeathblowState = false;
     public bool closeToPlayer = false;
 
     private MonoBehaviour[] enemyScripts;
     private Rigidbody2D rb;
-    private Animator animator; // <-- Add this
+    private Animator animator;
+    private SpriteRenderer spriteRenderer;
+    private Color originalColor;
 
     private void Awake()
     {
@@ -32,7 +39,9 @@ public class EnemyHealth : MonoBehaviour
         UpdateHealthUI();
 
         rb = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>(); // <-- Get Animator
+        animator = GetComponent<Animator>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer != null) originalColor = spriteRenderer.color;
 
         enemyScripts = GetComponents<MonoBehaviour>()
             .Where(script => script != this)
@@ -55,6 +64,7 @@ public class EnemyHealth : MonoBehaviour
     {
         if (isDead) return;
 
+        // Apply damage
         currentHealth -= amount;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         UpdateHealthUI();
@@ -68,14 +78,35 @@ public class EnemyHealth : MonoBehaviour
             rb.AddForce(knockbackDir * knockbackForce, ForceMode2D.Impulse);
         }
 
+        // Handle different states based on health
         if (currentHealth > 0)
         {
+            // Normal damage - just stun
             StartCoroutine(StunRoutine());
         }
-        else
+        else if (currentHealth <= 0 && !isInDeathblowState && !isDead)
         {
+            // First time reaching 0 health - enter deathblow state
+            EnterDeathblowState();
+            return;
+        }
+        else if (currentHealth <= 0 && isInDeathblowState && !isDead)
+        {
+            // Already in deathblow state and received another hit - die
             isDead = true;
             StartCoroutine(HandleDeath());
+            return;
+        }
+    }
+
+    private void EnterDeathblowState()
+    {
+        isInDeathblowState = true;
+        
+        // Visual feedback - change color
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = deathblowColor;
         }
     }
 
@@ -130,6 +161,17 @@ public class EnemyHealth : MonoBehaviour
         if (healthSlider != null)
         {
             healthSlider.value = currentHealth / maxHealth;
+            
+            // Change health bar color during deathblow state
+            if (healthSlider.fillRect != null)
+            {
+                Image fillImage = healthSlider.fillRect.GetComponent<Image>();
+                if (fillImage != null)
+                {
+                    // Set specific colors rather than using Color.white as the default
+                    fillImage.color = isInDeathblowState ? deathblowColor : new Color(0.2f, 0.8f, 0.2f, 1f); // Green for normal state
+                }
+            }
         }
     }
 }
