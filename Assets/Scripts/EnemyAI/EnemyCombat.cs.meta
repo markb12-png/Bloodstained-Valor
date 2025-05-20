@@ -1,9 +1,5 @@
 fileFormatVersion: 2
-<<<<<<<< HEAD:Assets/Scripts/EnemyAI/EnemyBrain.cs.meta
-guid: 24f0351c640335d648b2308cfde12a3a
-========
-guid: b02362ce8f672234abef5fa2bb564b59
->>>>>>>> mark:Assets/Scripts/VFXSpawner.cs.meta
+guid: c2df82af9b047684a8785938f38ebfa2
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2

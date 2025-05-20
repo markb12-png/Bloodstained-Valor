@@ -76,11 +76,7 @@ public class PlayerHealth : MonoBehaviour
         rb.AddForce(knockbackDir * 10f, ForceMode2D.Impulse);
 
         // Camera shake
-        var shake = Camera.main?.GetComponent<CameraShake>();
-        if (shake != null)
-        {
-            shake.StartShake(0.3f, 0.2f);
-        }
+       
 
         if (currentHealth > 0)
         {

@@ -14,6 +14,10 @@ public class PlayerDash : MonoBehaviour
     [Header("UI")]
     [SerializeField] private Slider dashSlider;
 
+    [Header("Audio")]
+    public AudioSource audioSource;
+    public AudioClip dashRechargeSound;
+
     private int currentDashCharges;
     private bool isRefilling = false;
     private bool canDash = true;
@@ -44,11 +48,10 @@ public class PlayerDash : MonoBehaviour
 
     private void Update()
     {
-        // Support both keyboard and controller horizontal input
-        bool movingInput = Mathf.Abs(Input.GetAxisRaw("Horizontal")) > 0.1f;
+        bool movingInput = Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D)
+                         || Input.GetAxisRaw("Horizontal") != 0;
 
-        // Input Manager based dash input
-        if (Input.GetButtonDown("Dash") && canDash && currentDashCharges > 0 && movingInput)
+        if ((Input.GetKeyDown(KeyCode.C) || Input.GetButtonDown("Dash")) && canDash && currentDashCharges > 0 && movingInput)
         {
             StartCoroutine(Dash());
         }
@@ -73,11 +76,8 @@ public class PlayerDash : MonoBehaviour
             animator.Play("knight dash");
         }
 
-        // Use horizontal axis to determine dash direction
-        float input = Input.GetAxisRaw("Horizontal");
-        int direction = input >= 0 ? 1 : -1;
-
-        Vector2 dashDirection = new Vector2(direction, 0);
+        int inputDirection = Input.GetKey(KeyCode.D) || Input.GetAxisRaw("Horizontal") > 0 ? 1 : -1;
+        Vector2 dashDirection = new Vector2(inputDirection, 0);
         float elapsedTime = 0f;
 
         while (elapsedTime < dashDuration)
@@ -95,7 +95,7 @@ public class PlayerDash : MonoBehaviour
 
         if (animator != null)
         {
-            if (direction < 0)
+            if (rb.velocity.x < 0)
                 animator.Play("idle animation left");
             else
                 animator.Play("idle animation right");
@@ -115,8 +115,12 @@ public class PlayerDash : MonoBehaviour
         {
             yield return new WaitForSeconds(chargeRefillTime);
             currentDashCharges++;
-            Debug.Log($"[PlayerDash] Charge refilled. Current charges: {currentDashCharges}");
             UpdateDashSlider();
+
+            if (audioSource != null && dashRechargeSound != null)
+            {
+                audioSource.PlayOneShot(dashRechargeSound);
+            }
         }
 
         isRefilling = false;

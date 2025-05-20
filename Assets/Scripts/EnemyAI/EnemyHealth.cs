@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 using System.Linq;
@@ -13,18 +13,26 @@ public class EnemyHealth : MonoBehaviour
     [SerializeField] private float stunDuration = 0.5f;
     [SerializeField] private float knockbackForce = 10f;
 
+    [Header("Deathblow Settings")]
+    [SerializeField] private Color deathblowColor = new Color(0.8f, 0.2f, 0.2f, 1f);
+    [SerializeField] private Color normalHealthColor = new Color(0.2f, 0.8f, 0.2f, 1f);
+    [SerializeField] private GameObject enemyVisual;
+    [SerializeField] private Animator playerAnimator;
+    [SerializeField] private float deathblowDuration = 1.2f;
+
     private float currentHealth;
-    private bool isDead = false;
+    public bool isDead = false;
+    public bool isInDeathblowState = false;
     public bool closeToPlayer = false;
 
     private MonoBehaviour[] enemyScripts;
     private Rigidbody2D rb;
-    private Animator animator; // <-- Add this
+    private Animator animator;
+    private SpriteRenderer spriteRenderer;
+    private Color originalColor;
+    private bool deathblowTriggered = false;
 
-    private void Awake()
-    {
-        if (healthSlider != null) healthSlider.gameObject.SetActive(true);
-    }
+    private GameObject player;
 
     private void Start()
     {
@@ -32,25 +40,32 @@ public class EnemyHealth : MonoBehaviour
         UpdateHealthUI();
 
         rb = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>(); // <-- Get Animator
+        animator = GetComponent<Animator>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer != null) originalColor = spriteRenderer.color;
 
-        enemyScripts = GetComponents<MonoBehaviour>()
-            .Where(script => script != this)
-            .ToArray();
+        enemyScripts = GetComponents<MonoBehaviour>().Where(script => script != this).ToArray();
+        player = GameObject.FindGameObjectWithTag("Player");
+    }
+
+    private void Update()
+    {
+        if (isInDeathblowState && !isDead && closeToPlayer && Input.GetButtonDown("Attack") && !deathblowTriggered)
+        {
+            StartCoroutine(PlayDeathblowSequence());
+        }
     }
 
     public void OnTriggerStay2D(Collider2D collider)
     {
-        if (collider.tag == "Player") closeToPlayer = true;
-        else closeToPlayer = false;
+        if (collider.CompareTag("Player")) closeToPlayer = true;
     }
 
     public void OnTriggerExit2D(Collider2D collider)
     {
-        if (collider.tag == "Player") closeToPlayer = false;
+        if (collider.CompareTag("Player")) closeToPlayer = false;
     }
 
-    // Requires both amount and hitSourcePosition!
     public void TakeDamage(float amount, Vector2 hitSourcePosition)
     {
         if (isDead) return;
@@ -59,11 +74,10 @@ public class EnemyHealth : MonoBehaviour
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         UpdateHealthUI();
 
-        // Knockback: always away from attacker, with a slight upward angle
         if (rb != null)
         {
             float direction = Mathf.Sign(transform.position.x - hitSourcePosition.x);
-            // if (closeToPlayer) direction = -direction;
+            if (closeToPlayer) direction = -direction;
             Vector2 knockbackDir = new Vector2(direction, 0.3f).normalized;
             rb.AddForce(knockbackDir * knockbackForce, ForceMode2D.Impulse);
         }
@@ -72,36 +86,89 @@ public class EnemyHealth : MonoBehaviour
         {
             StartCoroutine(StunRoutine());
         }
-        else
+        else if (currentHealth <= 0 && !isInDeathblowState && !isDead)
         {
-            isDead = true;
-            StartCoroutine(HandleDeath());
+            EnterDeathblowState();
         }
+    }
+
+    private void EnterDeathblowState()
+    {
+        isInDeathblowState = true;
+
+        if (spriteRenderer != null)
+            spriteRenderer.color = deathblowColor;
+
+        if (animator != null)
+            animator.Play("enemy dazed");
+
+        LockEnemy();
     }
 
     private IEnumerator StunRoutine()
     {
-        var toDisable = GetComponents<MonoBehaviour>()
-            .Where(m => m != this)
-            .ToList();
+        animator.Play("enemy stun");
 
-        foreach (var script in toDisable)
+        foreach (var script in enemyScripts)
             script.enabled = false;
 
         yield return new WaitForSeconds(stunDuration);
 
-        foreach (var script in toDisable)
+        foreach (var script in enemyScripts)
             script.enabled = true;
+
+        animator.Play("enemy idle");
+    }
+
+    private IEnumerator PlayDeathblowSequence()
+    {
+        deathblowTriggered = true;
+        isDead = true;
+
+        LockEnemy();
+
+        // Disable specific player scripts
+        var movement = player.GetComponent<PlayerMovement>();
+        var jump = player.GetComponent<PlayerJump>();
+        var dash = player.GetComponent<PlayerDash>();
+        var attack = player.GetComponent<PlayerAttack>();
+        var airAttack = player.GetComponent<PlayerAirAttack>();
+        var facing = player.GetComponent<PlayerFacing>();
+
+        if (movement) movement.enabled = false;
+        if (jump) jump.enabled = false;
+        if (dash) dash.enabled = false;
+        if (attack) attack.enabled = false;
+        if (airAttack) airAttack.enabled = false;
+        if (facing) facing.enabled = false;
+
+        if (enemyVisual != null)
+            enemyVisual.SetActive(false);
+
+        if (playerAnimator != null)
+            playerAnimator.Play("knight deathblow");
+
+        yield return new WaitForSeconds(deathblowDuration);
+
+        if (animator != null)
+            animator.Play("enemy dead");
+
+        if (enemyVisual != null)
+            enemyVisual.SetActive(true);
+
+        // Re-enable same scripts
+        if (movement) movement.enabled = true;
+        if (jump) jump.enabled = true;
+        if (dash) dash.enabled = true;
+        if (attack) attack.enabled = true;
+        if (airAttack) airAttack.enabled = true;
+        if (facing) facing.enabled = true;
     }
 
     private IEnumerator HandleDeath()
     {
         isDead = true;
-        if (rb != null)
-        {
-            rb.velocity = Vector2.zero;
-            rb.bodyType = RigidbodyType2D.Static;
-        }
+        LockEnemy();
 
         foreach (var script in enemyScripts)
         {
@@ -109,20 +176,22 @@ public class EnemyHealth : MonoBehaviour
                 script.enabled = false;
         }
 
-        // --- PLAY THE DEATH ANIMATION ---
         if (animator != null)
-        {
-            animator.Play("knight death");
-        }
+            animator.Play("enemy dead");
 
         if (healthSlider != null)
             healthSlider.gameObject.SetActive(false);
 
-        // Optionally wait for the animation to finish (uncomment below if desired):
-        // yield return new WaitForSeconds(animator.GetCurrentAnimatorStateInfo(0).length);
-
-        // Destroy(gameObject); // Uncomment if you want the enemy to disappear
         yield return null;
+    }
+
+    public void LockEnemy()
+    {
+        if (rb != null)
+        {
+            rb.velocity = Vector2.zero;
+            rb.bodyType = RigidbodyType2D.Static;
+        }
     }
 
     private void UpdateHealthUI()
@@ -130,6 +199,12 @@ public class EnemyHealth : MonoBehaviour
         if (healthSlider != null)
         {
             healthSlider.value = currentHealth / maxHealth;
+            if (healthSlider.fillRect != null)
+            {
+                Image fillImage = healthSlider.fillRect.GetComponent<Image>();
+                if (fillImage != null)
+                    fillImage.color = isInDeathblowState ? deathblowColor : normalHealthColor;
+            }
         }
     }
 }

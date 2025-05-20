@@ -3,11 +3,9 @@ using UnityEngine.SceneManagement;
 
 public class MenuFunctions : MonoBehaviour
 {
-    public GameObject settingsPanel; // 👈 Assign this in the inspector
-
     public void StartNewGame()
     {
-        SceneManager.LoadScene("basement");
+        SceneManager.LoadScene("level 1 cutscene");
     }
 
     public void QuitGame()
@@ -17,21 +15,5 @@ public class MenuFunctions : MonoBehaviour
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #endif
-    }
-
-    public void OpenSettings()
-    {
-        if (settingsPanel != null)
-        {
-            settingsPanel.SetActive(true);
-        }
-    }
-
-    public void CloseSettings()
-    {
-        if (settingsPanel != null)
-        {
-            settingsPanel.SetActive(false);
-        }
     }
 }

@@ -15,6 +15,14 @@ public class PlayerSFX : MonoBehaviour
     public AudioClip darksouls;
     public AudioClip hurt;
 
+    public AudioClip deathblowBlood;
+    public AudioClip deathblowInitialStab;
+    public AudioClip deathblowAnticipation;
+    public AudioClip deathblowWipe;
+    public AudioClip deathblowSpin;
+    public AudioClip deathblowSwordOut;
+    public AudioClip deathblowIndicator; // New
+
     // Footstep sound for walk/run animations
     public void PlayFootstep()
     {
@@ -67,4 +75,38 @@ public class PlayerSFX : MonoBehaviour
         audioSource.PlayOneShot(hurt);
     }
 
+    public void PlayDeathblowBlood()
+    {
+        audioSource.PlayOneShot(deathblowBlood);
+    }
+
+    public void PlayDeathblowInitialStab()
+    {
+        audioSource.PlayOneShot(deathblowInitialStab);
+    }
+
+    public void PlayDeathblowAnticipation()
+    {
+        audioSource.PlayOneShot(deathblowAnticipation);
+    }
+
+    public void PlayDeathblowWipe()
+    {
+        audioSource.PlayOneShot(deathblowWipe);
+    }
+
+    public void PlayDeathblowSpin()
+    {
+        audioSource.PlayOneShot(deathblowSpin);
+    }
+
+    public void PlayDeathblowSwordOut()
+    {
+        audioSource.PlayOneShot(deathblowSwordOut);
+    }
+
+    public void PlayDeathblowIndicator() // New function
+    {
+        audioSource.PlayOneShot(deathblowIndicator);
+    }
 }

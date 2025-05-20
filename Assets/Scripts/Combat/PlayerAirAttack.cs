@@ -124,11 +124,8 @@ public class PlayerAirAttack : MonoBehaviour
 
     private GameObject SpawnHitbox(int direction)
     {
-        var shake = Camera.main?.GetComponent<CameraShake>();
-        if (shake != null)
-        {
-            shake.StartShake(0.1f, 0.2f);
-        }
+      
+       
 
         if (hitboxPrefab == null) return null;
 

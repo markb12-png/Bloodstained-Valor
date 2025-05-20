@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class GroundDetector : MonoBehaviour
 {
@@ -14,5 +14,11 @@ public class GroundDetector : MonoBehaviour
         Vector2 rayOrigin = (Vector2)transform.position + groundCheckOffset;
         RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.down, groundCheckDistance, groundLayer);
         IsGrounded = hit.collider != null;
+
+        // ✅ Visualize the ground ray in the Scene view
+        Debug.DrawRay(rayOrigin, Vector2.down * groundCheckDistance, IsGrounded ? Color.green : Color.red);
+
+        // ✅ Optional: log state to Console
+        // Debug.Log($"IsGrounded: {IsGrounded}");
     }
 }

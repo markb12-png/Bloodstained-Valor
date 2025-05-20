@@ -9,7 +9,7 @@ public class MenuSelector : MonoBehaviour
     public Button[] menuButtons;   // All menu buttons
     public TextMeshProUGUI[] highlightTexts; // Highlight effect texts
     public MenuFunctions menuFunctions;      // Reference to menu function script
-    public GameObject loadGameMenu;          // Reference to Load Game UI panel
+    public GameObject loadGameMenu;          // Optional: Load Game panel
 
     public AudioClip moveSound;    // Sound when moving selector
     public AudioClip selectSound;  // Sound when selecting option
@@ -18,7 +18,7 @@ public class MenuSelector : MonoBehaviour
 
     private int selectedIndex = 0;
     private bool isLocked = false;
-    private float inputCooldown = 0.2f; // Prevents fast repeated input
+    private float inputCooldown = 0.2f;
     private float lastInputTime;
 
     private void Start()
@@ -32,17 +32,15 @@ public class MenuSelector : MonoBehaviour
         if (isLocked)
             return;
 
-        // If a menu is open, allow cancel key to close it
-        if (loadGameMenu.activeSelf || (menuFunctions != null && menuFunctions.settingsPanel.activeSelf))
+        // Cancel input for closing Load Game panel
+        if (loadGameMenu != null && loadGameMenu.activeSelf)
         {
             CheckForCancelInput();
             return;
         }
 
-        // Combine keyboard + D-pad input
         float vertical = Input.GetAxisRaw("Select") + Input.GetAxisRaw("SelectDpad");
 
-        // Move selector up/down (with cooldown)
         if (Time.time - lastInputTime > inputCooldown)
         {
             if (vertical < -0.5f)
@@ -61,7 +59,6 @@ public class MenuSelector : MonoBehaviour
             }
         }
 
-        // Confirm selection
         if (Input.GetButtonDown("Confirm"))
         {
             isLocked = true;
@@ -91,10 +88,8 @@ public class MenuSelector : MonoBehaviour
             case 0:
                 menuFunctions.StartNewGame();
                 break;
+            // You can insert more cases if needed (e.g. LoadGame)
             case 1:
-                menuFunctions.OpenSettings();
-                break;
-            case 2:
                 menuFunctions.QuitGame();
                 break;
         }
@@ -102,18 +97,10 @@ public class MenuSelector : MonoBehaviour
 
     private void CheckForCancelInput()
     {
-        if (Input.GetButtonDown("Cancel"))
+        if (Input.GetButtonDown("Cancel") && loadGameMenu != null)
         {
             PlaySound(cancelSound);
-
-            if (loadGameMenu.activeSelf)
-            {
-                loadGameMenu.SetActive(false);
-            }
-            else if (menuFunctions != null && menuFunctions.settingsPanel.activeSelf)
-            {
-                menuFunctions.CloseSettings();
-            }
+            loadGameMenu.SetActive(false);
         }
     }
 

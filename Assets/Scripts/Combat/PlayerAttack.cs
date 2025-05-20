@@ -33,7 +33,7 @@ public class PlayerAttack : MonoBehaviour
     private GroundDetector groundDetector;
     private MonoBehaviour[] otherScripts;
 
-    [SerializeField] private bool isAttacking = false;
+    private bool isAttacking = false;
     private bool interruptedByClash = false;
 
     private void Start()
@@ -45,24 +45,33 @@ public class PlayerAttack : MonoBehaviour
         otherScripts = GetComponents<MonoBehaviour>()
             .Where(script => script != null && script != this && script != groundDetector)
             .ToArray();
+
+        Player.canAttack = true; // ✅ Initialize attack state
     }
 
     private void Update()
     {
-        // ✅ Use Input Manager for attack input
-        if (!isAttacking && Player.canAttack && groundDetector.IsGrounded && Input.GetButtonDown("Attack"))
+        bool inputPressed = Input.GetButtonDown("Attack"); // Make sure Input Manager is configured
+        bool grounded = groundDetector != null && groundDetector.IsGrounded;
+        bool canAttackNow = !isAttacking && Player.canAttack;
+
+        
+        if (inputPressed && grounded && canAttackNow)
         {
+           
             StartCoroutine(AttackSequence());
         }
+
         isAttacking = Player.isAttacking;
     }
 
     private IEnumerator AttackSequence()
     {
         isAttacking = true;
-        interruptedByClash = false;
-        // ToggleOtherScripts(false);
         Player.canAttack = false;
+        interruptedByClash = false;
+
+        ToggleOtherScripts(false);
 
         Vector2 dashDirection = transform.localScale.x > 0 ? Vector2.right : Vector2.left;
 
@@ -74,6 +83,7 @@ public class PlayerAttack : MonoBehaviour
         rb.velocity = Vector2.zero;
         int currentFrame = 0;
 
+        // Startup
         while (currentFrame < startupFrames)
         {
             if (interruptedByClash) yield break;
@@ -81,6 +91,7 @@ public class PlayerAttack : MonoBehaviour
             yield return null;
         }
 
+        // Dash phase
         while (currentFrame < startupFrames + dashFrames)
         {
             if (interruptedByClash) yield break;
@@ -91,6 +102,7 @@ public class PlayerAttack : MonoBehaviour
 
             if (currentFrame == hitboxSpawnFrame)
             {
+                Debug.Log("[Attack] Spawning hitbox");
                 SpawnHitbox(dashDirection);
             }
 
@@ -98,6 +110,7 @@ public class PlayerAttack : MonoBehaviour
             yield return null;
         }
 
+        // Slowdown
         float initialSpeed = rb.velocity.magnitude;
         while (currentFrame < startupFrames + dashFrames + slowdownFrames)
         {
@@ -113,6 +126,7 @@ public class PlayerAttack : MonoBehaviour
 
         rb.velocity = Vector2.zero;
 
+        // Recovery
         while (currentFrame < startupFrames + dashFrames + slowdownFrames + recoveryFrames)
         {
             if (interruptedByClash) yield break;
@@ -126,6 +140,7 @@ public class PlayerAttack : MonoBehaviour
             return state.IsName("knight sword attack") && state.normalizedTime >= 1f;
         });
 
+        // Reset to idle animation
         if (rb.velocity.x < 0)
             animator.Play("idle animation left");
         else
@@ -134,21 +149,27 @@ public class PlayerAttack : MonoBehaviour
         ToggleOtherScripts(true);
         isAttacking = false;
 
+        Debug.Log("[Attack] Attack finished. Starting cooldown.");
+
         yield return new WaitForSeconds(cooldownTime);
         Player.canAttack = true;
     }
 
     private void SpawnHitbox(Vector2 direction)
     {
-        var shake = Camera.main?.GetComponent<CameraShake>();
-        if (shake != null) shake.StartShake(0.1f, 0.2f);
-
-        if (hitboxPrefab == null) return;
+        if (hitboxPrefab == null)
+        {
+            Debug.LogWarning("[Attack] No hitboxPrefab assigned!");
+            return;
+        }
 
         Vector2 spawnPosition = (Vector2)transform.position + hitboxOffset * direction;
         GameObject hitbox = Instantiate(hitboxPrefab, spawnPosition, Quaternion.identity, transform);
         HitboxDamage damage = hitbox.GetComponent<HitboxDamage>();
-        if (damage != null) damage.SetOwner(gameObject);
+        if (damage != null)
+        {
+            damage.SetOwner(gameObject);
+        }
 
         Destroy(hitbox, hitboxDurationFrames / 30f);
     }
