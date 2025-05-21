@@ -32,7 +32,9 @@ public class EnemyCombat : MonoBehaviour
         transform.localScale = new Vector3(facingRight ? originalScale : -originalScale, transform.localScale.y, transform.localScale.z);
         dashDirection = facingRight ? Vector2.right : Vector2.left;
 
-        animator.Play("enemy crescent slash");
+        // Force play from beginning even if already playing
+        animator.Play("enemy crescent slash", -1, 0f);
+
         isAttacking = true;
         hasAttacked = true;
 
@@ -43,12 +45,15 @@ public class EnemyCombat : MonoBehaviour
     private void SpawnHitbox()
     {
         if (hitboxPrefab == null) return;
+
         Vector2 spawnPos = (Vector2)transform.position + hitboxOffset * dashDirection;
         GameObject hitbox = Instantiate(hitboxPrefab, spawnPos, Quaternion.identity, transform);
+
         if (hitbox.TryGetComponent(out HitboxDamage damage))
         {
             damage.SetOwner(gameObject);
         }
+
         Destroy(hitbox, hitboxDurationFrames / 30f);
     }
 

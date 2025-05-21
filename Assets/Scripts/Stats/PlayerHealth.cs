@@ -28,6 +28,9 @@ public class PlayerHealth : MonoBehaviour
     private Animator animator;
     private MonoBehaviour[] playerScripts;
 
+    public GameObject UIParent;
+    public GameObject UIHealth;
+
     private void Awake()
     {
         // Guaranteed: Hide the death UI before anything else
@@ -50,6 +53,9 @@ public class PlayerHealth : MonoBehaviour
 
     private void Update()
     {
+        UIParent = this.gameObject.transform.Find("UI").gameObject;
+        UIHealth = UIParent.transform.Find("Player UI").gameObject.transform.Find("health").gameObject;
+        healthSlider = UIHealth.GetComponent<Slider>();
         if (!isDead && currentHealth < maxHealth)
         {
             if (Time.time - lastDamageTime >= delayBeforeRegeneration && regenerationCoroutine == null)

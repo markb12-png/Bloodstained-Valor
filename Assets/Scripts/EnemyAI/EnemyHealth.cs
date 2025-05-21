@@ -11,14 +11,21 @@ public class EnemyHealth : MonoBehaviour
 
     [Header("Stun Settings")]
     [SerializeField] private float stunDuration = 0.5f;
-    [SerializeField] private float knockbackForce = 10f;
+    [SerializeField] private float knockbackForce = 1.5f;
 
     [Header("Deathblow Settings")]
     [SerializeField] private Color deathblowColor = new Color(0.8f, 0.2f, 0.2f, 1f);
     [SerializeField] private Color normalHealthColor = new Color(0.2f, 0.8f, 0.2f, 1f);
     [SerializeField] private GameObject enemyVisual;
     [SerializeField] private Animator playerAnimator;
-    [SerializeField] private float deathblowDuration = 1.2f;
+
+    [Header("Attack Collider")]
+    [SerializeField] private BoxCollider2D attackCollider; // Assign this in Inspector
+
+    [Header("Dazed UI")]
+    [SerializeField] private GameObject dazedTextPrefab;
+    [SerializeField] private Vector3 dazedTextOffset = new Vector3(0, 2f, 0);
+    private GameObject activeDazedText;
 
     private float currentHealth;
     public bool isDead = false;
@@ -33,6 +40,7 @@ public class EnemyHealth : MonoBehaviour
     private bool deathblowTriggered = false;
 
     private GameObject player;
+    private GroundDetector playerGround;
 
     private void Start()
     {
@@ -46,25 +54,51 @@ public class EnemyHealth : MonoBehaviour
 
         enemyScripts = GetComponents<MonoBehaviour>().Where(script => script != this).ToArray();
         player = GameObject.FindGameObjectWithTag("Player");
+
+        if (player != null)
+            playerGround = player.GetComponent<GroundDetector>();
     }
 
     private void Update()
     {
+        if (isInDeathblowState && activeDazedText != null)
+        {
+            activeDazedText.transform.position = transform.position + dazedTextOffset;
+        }
+
+        // ✅ Use overlap check against attack collider to see if player is inside
+        if (attackCollider != null && player != null)
+        {
+            closeToPlayer = attackCollider.bounds.Contains(player.transform.position);
+        }
+
         if (isInDeathblowState && !isDead && closeToPlayer && Input.GetButtonDown("Attack") && !deathblowTriggered)
         {
-            StartCoroutine(PlayDeathblowSequence());
+            if (playerGround != null && playerGround.IsGrounded)
+            {
+                StartCoroutine(PlayDeathblowSequence());
+            }
         }
     }
 
-    public void OnTriggerStay2D(Collider2D collider)
+
+    private void OnTriggerEnter2D(Collider2D collider)
     {
-        if (collider.CompareTag("Player")) closeToPlayer = true;
+        if (collider.CompareTag("Player") && attackCollider.bounds.Intersects(collider.bounds))
+        {
+            closeToPlayer = true;
+        }
     }
 
-    public void OnTriggerExit2D(Collider2D collider)
+    private void OnTriggerExit2D(Collider2D collider)
     {
-        if (collider.CompareTag("Player")) closeToPlayer = false;
+        if (collider.CompareTag("Player"))
+        {
+            closeToPlayer = false;
+        }
     }
+
+
 
     public void TakeDamage(float amount, Vector2 hitSourcePosition)
     {
@@ -78,7 +112,7 @@ public class EnemyHealth : MonoBehaviour
         {
             float direction = Mathf.Sign(transform.position.x - hitSourcePosition.x);
             if (closeToPlayer) direction = -direction;
-            Vector2 knockbackDir = new Vector2(direction, 0.3f).normalized;
+            Vector2 knockbackDir = new Vector2(direction, 0.3f);
             rb.AddForce(knockbackDir * knockbackForce, ForceMode2D.Impulse);
         }
 
@@ -88,36 +122,60 @@ public class EnemyHealth : MonoBehaviour
         }
         else if (currentHealth <= 0 && !isInDeathblowState && !isDead)
         {
-            EnterDeathblowState();
+            StartCoroutine(DelayedDeathblowEntry());
         }
+    }
+
+    private IEnumerator DelayedDeathblowEntry()
+    {
+        yield return new WaitForSeconds(0.3f);
+        EnterDeathblowState();
     }
 
     private void EnterDeathblowState()
     {
         isInDeathblowState = true;
 
+        if (animator != null)
+            animator.Play("enemy dazed", -1, 0f);
+
         if (spriteRenderer != null)
             spriteRenderer.color = deathblowColor;
 
-        if (animator != null)
-            animator.Play("enemy dazed");
-
         LockEnemy();
+
+        foreach (var script in enemyScripts)
+            script.enabled = false;
+
+        if (attackCollider != null)
+            attackCollider.enabled = false; // Optional: disable attack collider during dazed/deathblow
+
+        if (dazedTextPrefab != null && activeDazedText == null)
+        {
+            activeDazedText = Instantiate(dazedTextPrefab, transform.position + dazedTextOffset, Quaternion.identity);
+        }
     }
 
     private IEnumerator StunRoutine()
     {
-        animator.Play("enemy stun");
+        if (isInDeathblowState) yield break;
+
+        if (animator != null)
+            animator.Play("enemy stun");
 
         foreach (var script in enemyScripts)
             script.enabled = false;
 
         yield return new WaitForSeconds(stunDuration);
 
-        foreach (var script in enemyScripts)
-            script.enabled = true;
+        if (!isInDeathblowState)
+        {
+            foreach (var script in enemyScripts)
+                script.enabled = true;
 
-        animator.Play("enemy idle");
+            if (animator != null)
+                animator.Play("enemy idle");
+        }
     }
 
     private IEnumerator PlayDeathblowSequence()
@@ -127,7 +185,21 @@ public class EnemyHealth : MonoBehaviour
 
         LockEnemy();
 
-        // Disable specific player scripts
+        if (activeDazedText != null)
+        {
+            Destroy(activeDazedText);
+            activeDazedText = null;
+        }
+
+        if (healthSlider != null)
+        {
+            Destroy(healthSlider.gameObject);
+            healthSlider = null;
+        }
+
+        if (animator != null)
+            animator.Play("enemy dead");
+
         var movement = player.GetComponent<PlayerMovement>();
         var jump = player.GetComponent<PlayerJump>();
         var dash = player.GetComponent<PlayerDash>();
@@ -142,47 +214,40 @@ public class EnemyHealth : MonoBehaviour
         if (airAttack) airAttack.enabled = false;
         if (facing) facing.enabled = false;
 
-        if (enemyVisual != null)
-            enemyVisual.SetActive(false);
+        if (spriteRenderer != null)
+            spriteRenderer.enabled = false;
 
         if (playerAnimator != null)
             playerAnimator.Play("knight deathblow");
 
-        yield return new WaitForSeconds(deathblowDuration);
+        yield return new WaitUntil(() =>
+        {
+            AnimatorStateInfo info = playerAnimator.GetCurrentAnimatorStateInfo(0);
+            return info.IsName("knight deathblow") && info.normalizedTime >= 1f;
+        });
 
-        if (animator != null)
-            animator.Play("enemy dead");
+        if (spriteRenderer != null)
+            spriteRenderer.enabled = true;
 
-        if (enemyVisual != null)
-            enemyVisual.SetActive(true);
+        transform.position += new Vector3(2f, 0f, 0f);
+        if (spriteRenderer != null)
+            spriteRenderer.flipX = !spriteRenderer.flipX;
 
-        // Re-enable same scripts
         if (movement) movement.enabled = true;
         if (jump) jump.enabled = true;
         if (dash) dash.enabled = true;
         if (attack) attack.enabled = true;
         if (airAttack) airAttack.enabled = true;
         if (facing) facing.enabled = true;
-    }
 
-    private IEnumerator HandleDeath()
-    {
-        isDead = true;
-        LockEnemy();
+        if (player.transform.localScale.x > 0)
+            playerAnimator.Play("idle animation right");
+        else
+            playerAnimator.Play("idle animation left");
 
-        foreach (var script in enemyScripts)
-        {
-            if (script != null)
-                script.enabled = false;
-        }
-
-        if (animator != null)
-            animator.Play("enemy dead");
-
-        if (healthSlider != null)
-            healthSlider.gameObject.SetActive(false);
-
-        yield return null;
+        // ✅ Deactivate fog walls
+        GameObject.Find("Fogwall1")?.SetActive(false);
+        GameObject.Find("Fogwall2")?.SetActive(false);
     }
 
     public void LockEnemy()

@@ -32,6 +32,9 @@ public class PlayerDash : MonoBehaviour
     private int originalLayer;
     [SerializeField] private string invulnerableLayerName = "Invulnerable";
 
+    public GameObject UIParent;
+    public GameObject UIStamina;
+
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -48,6 +51,9 @@ public class PlayerDash : MonoBehaviour
 
     private void Update()
     {
+        UIParent = this.gameObject.transform.Find("UI").gameObject;
+        UIStamina = UIParent.transform.Find("Player UI").gameObject.transform.Find("stamina").gameObject;
+        dashSlider = UIStamina.GetComponent<Slider>();
         bool movingInput = Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D)
                          || Input.GetAxisRaw("Horizontal") != 0;
 

@@ -52,6 +52,7 @@ public class PlayerAttack : MonoBehaviour
     private void Update()
     {
         bool inputPressed = Input.GetButtonDown("Attack"); // Make sure Input Manager is configured
+      
         bool grounded = groundDetector != null && groundDetector.IsGrounded;
         bool canAttackNow = !isAttacking && Player.canAttack;
 
@@ -146,6 +147,7 @@ public class PlayerAttack : MonoBehaviour
         else
             animator.Play("idle animation right");
 
+        Debug.Log("FROM PLAYER ATTACK: Restore scripts");
         ToggleOtherScripts(true);
         isAttacking = false;
 
