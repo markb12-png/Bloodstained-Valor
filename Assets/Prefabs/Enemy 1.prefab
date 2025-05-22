@@ -543,10 +543,10 @@ BoxCollider2D:
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 1024
   m_ExcludeLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 7159
   m_LayerOverridePriority: 0
   m_ForceSendLayers:
     serializedVersion: 2
@@ -574,7 +574,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 7.24, y: 3.6}
+  m_Size: {x: 9, y: 3.6}
   m_EdgeRadius: 0
 --- !u!58 &7189151780956842324
 CircleCollider2D:
@@ -588,10 +588,10 @@ CircleCollider2D:
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 1024
   m_ExcludeLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 7159
   m_LayerOverridePriority: 0
   m_ForceSendLayers:
     serializedVersion: 2
@@ -774,7 +774,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hitboxPrefab: {fileID: 2509472626631414782, guid: 460561004482452418cbc40ed10301c9, type: 3}
-  hitboxOffset: {x: 2, y: 0}
+  hitboxOffset: {x: 2.5, y: 0}
   hitboxSpawnFrame: 10
   hitboxDurationFrames: 8
   attackAnimationDuration: 1.5

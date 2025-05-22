@@ -53,6 +53,7 @@ public class PlayerJump : MonoBehaviour
                 StopCoroutine(currentJumpRoutine);
 
             ToggleOtherScripts(false);
+            airAttack.enabled = true;
             airAttack.TriggerAirAttack(OnAirAttackFinished);
             return;
         }
@@ -83,6 +84,7 @@ public class PlayerJump : MonoBehaviour
     {
         isJumping = true;
         ToggleOtherScripts(false);
+        Debug.Log("JUMP SEQUENCE START");
 
         if (animator != null)
         {
@@ -94,14 +96,18 @@ public class PlayerJump : MonoBehaviour
         rb.velocity = new Vector2(rb.velocity.x, jumpForce);
 
         yield return new WaitUntil(() => !IsGrounded());
+        Debug.Log("Player in air");
         yield return new WaitUntil(() => IsGrounded());
+        Debug.Log("Player landed");
 
         animator.Play("jump land");
 
+        Debug.Log("WAITING JUMP LAND ANIMATION END");
         while (!IsAnimationFinished("jump land"))
         {
             yield return null;
         }
+        Debug.Log("Jump land animation ended");
 
         // Idle transition based on direction (no flip)
         if (rb.velocity.x < 0)
@@ -118,16 +124,19 @@ public class PlayerJump : MonoBehaviour
             yield return null;
         }
 
+        Debug.Log("Resume scripts");
         ToggleOtherScripts(true);
         isJumping = false;
     }
 
     private IEnumerator WatchJumpStartAnimation()
     {
+        Debug.Log("WATCHING JUMP START ANIMATION END");
         while (!IsAnimationFinished("jump start"))
         {
             yield return null;
         }
+        Debug.Log("jumpStartPlaying = false");
         jumpStartPlaying = false;
     }
 
@@ -154,7 +163,6 @@ public class PlayerJump : MonoBehaviour
         isJumping = false;
     }
 
-    // FIX: Add this to reset the jump state after being hit
     public void ResetJumpState()
     {
         isJumping = false;

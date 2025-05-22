@@ -122,6 +122,9 @@ public class PlayerHealth : MonoBehaviour
             var attack = GetComponent<PlayerAttack>();
             if (attack != null) attack.ForceCancelAttack();
         }
+
+
+
     }
 
     private IEnumerator HandleDeath()

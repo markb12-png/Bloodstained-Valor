@@ -17,6 +17,7 @@ public class EnemyBrain : MonoBehaviour
     private System.Random rng = new System.Random();
 
     private bool hasTriggeredFogwall = false;
+    private bool didEvaluateBackdash = false;
 
     private void Start()
     {
@@ -25,14 +26,7 @@ public class EnemyBrain : MonoBehaviour
         enemyMovement = GetComponent<EnemyMovement>();
         enemyCombat = GetComponent<EnemyCombat>();
 
-        if (player == null)
-            Debug.LogError("[EnemyBrain] Player GameObject NOT FOUND — must be named 'Player'");
-        if (enemyMovement == null)
-            Debug.LogError("[EnemyBrain] EnemyMovement script NOT found.");
-        if (enemyCombat == null)
-            Debug.LogError("[EnemyBrain] EnemyCombat script NOT found.");
-        if (attackRangeCollider == null)
-            Debug.LogError("[EnemyBrain] Attack range collider NOT assigned.");
+    
 
         playerAttack = player.GetComponent<PlayerAttack>();
         playerAirAttack = player.GetComponent<PlayerAirAttack>();
@@ -45,9 +39,6 @@ public class EnemyBrain : MonoBehaviour
     {
         if (other.gameObject == player)
         {
-            playerInRange = true;
-            Debug.Log("[EnemyBrain] Player ENTERED detection zone.");
-
             if (!hasTriggeredFogwall)
             {
                 hasTriggeredFogwall = true;
@@ -57,6 +48,14 @@ public class EnemyBrain : MonoBehaviour
                 else if (gameObject.name.Contains("2"))
                     GameObject.Find("Fogwall 2")?.SetActive(true);
             }
+        }
+    }
+    
+    private void OnTriggerStay2D(Collider2D other)
+    {
+        if (other.gameObject == player)
+        {
+            playerInRange = true;
         }
     }
 
@@ -73,6 +72,13 @@ public class EnemyBrain : MonoBehaviour
     {
         if (PlayerHealth.PlayerIsDead || player == null) return;
 
+        if (
+            (playerAttack != null && !playerAttack.IsPlayerAttacking()) &&
+            (playerAirAttack != null && !playerAirAttack.IsAirAttacking()))
+        {
+            didEvaluateBackdash = false;
+        }
+
         if (playerInRange)
         {
             float direction = player.transform.position.x - transform.position.x;
@@ -82,10 +88,13 @@ public class EnemyBrain : MonoBehaviour
                 lockedScale
             );
 
-            if ((playerAttack != null && playerAttack.IsPlayerAttacking()) ||
-                (playerAirAttack != null && playerAirAttack.IsAirAttacking()))
+            if (!didEvaluateBackdash &&
+                ((playerAttack != null && playerAttack.IsPlayerAttacking()) ||
+                (playerAirAttack != null && playerAirAttack.IsAirAttacking())))
             {
-                if (rng.NextDouble() < 0.5)
+                didEvaluateBackdash = true;
+                double randomvalue = rng.NextDouble();
+                if (randomvalue < 0.5)
                 {
                     Vector2 directionFromPlayer = transform.position - player.transform.position;
                     enemyMovement.Backdash(directionFromPlayer);

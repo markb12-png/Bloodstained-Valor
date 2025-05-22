@@ -55,7 +55,8 @@ public class PlayerAirAttack : MonoBehaviour
     {
         isAirAttacking = true;
         ToggleOtherScripts(false);
-        jumpScript.enabled = false;
+        //this.enabled = true;
+        //jumpScript.enabled = false;
 
         int direction = facingScript != null ? facingScript.GetFacingDirection() : 1;
         int currentFrame = 0;
@@ -106,7 +107,7 @@ public class PlayerAirAttack : MonoBehaviour
         yield return new WaitUntil(() =>
         {
             AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
-            return state.IsName("knight air attack") && state.normalizedTime >= 1f;
+            return !state.IsName("knight air attack") || state.normalizedTime >= 1f;
         });
 
         if (rb.velocity.x < 0)

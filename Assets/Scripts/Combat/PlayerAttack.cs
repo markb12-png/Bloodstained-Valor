@@ -120,7 +120,7 @@ public class PlayerAttack : MonoBehaviour
         yield return new WaitUntil(() =>
         {
             AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
-            return state.IsName("knight sword attack") && state.normalizedTime >= 1f;
+            return !state.IsName("knight sword attack") || state.normalizedTime >= 1f;
         });
 
         animator.Play(rb.velocity.x < 0 ? "idle animation left" : "idle animation right");
