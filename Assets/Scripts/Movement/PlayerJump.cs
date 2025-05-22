@@ -100,6 +100,7 @@ public class PlayerJump : MonoBehaviour
         yield return new WaitUntil(() => IsGrounded());
         Debug.Log("Player landed");
 
+        // Play landing animation
         animator.Play("jump land");
 
         Debug.Log("WAITING JUMP LAND ANIMATION END");
@@ -109,25 +110,40 @@ public class PlayerJump : MonoBehaviour
         }
         Debug.Log("Jump land animation ended");
 
-        // Idle transition based on direction (no flip)
-        if (rb.velocity.x < 0)
-        {
-            animator.Play("idle animation left");
-        }
-        else
-        {
-            animator.Play("idle animation right");
-        }
-
+        // Lock player for a short period (landing lock)
         for (int i = 0; i < lockFramesAfterLanding; i++)
         {
             yield return null;
+        }
+
+        // After lock: Play the correct movement/idle animation based on input & velocity
+        float moveInput = Input.GetAxisRaw("Horizontal");
+        float velocityX = rb.velocity.x;
+        float minWalkSpeed = 0.1f;
+
+        if (Mathf.Abs(moveInput) > 0.01f && Mathf.Abs(velocityX) > minWalkSpeed)
+        {
+            // Walking/running
+            if (velocityX < 0)
+                animator.Play("walk left");   // Replace with your run/walk left animation if needed
+            else
+                animator.Play("walk right");  // Replace with your run/walk right animation if needed
+        }
+        else
+        {
+            // Idle
+            if (velocityX < 0)
+                animator.Play("idle animation left");
+            else
+                animator.Play("idle animation right");
         }
 
         Debug.Log("Resume scripts");
         ToggleOtherScripts(true);
         isJumping = false;
     }
+
+
 
     private IEnumerator WatchJumpStartAnimation()
     {

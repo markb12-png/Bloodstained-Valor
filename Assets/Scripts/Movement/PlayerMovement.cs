@@ -14,7 +14,6 @@ public class PlayerMovement : MonoBehaviour
     void Update()
     {
         HandleMovement();
-        HandleAnimation();
 
         // Use Input Manager for sprint
         if (Input.GetButton("Sprint"))
@@ -25,6 +24,8 @@ public class PlayerMovement : MonoBehaviour
         {
             speed = walkSpeed;
         }
+
+        HandleAnimation();
     }
 
     private void HandleMovement()
@@ -36,32 +37,37 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleAnimation()
     {
+        float horizontalInput = Input.GetAxisRaw("Horizontal");
         float horizontalSpeed = Mathf.Abs(rb.velocity.x);
         float direction = Mathf.Sign(rb.velocity.x);
 
-        if (horizontalSpeed > 0f)
+        // Force override to walk/run if moving, always override idle if velocity present
+        if (horizontalInput != 0 && horizontalSpeed > 0.05f)
         {
-            if (Mathf.Approximately(horizontalSpeed, walkSpeed))
+            bool isRunning = speed == runSpeed;
+
+            if (direction > 0)
             {
-                Player.state = Player.Move.isWalking;
-                if (direction > 0)
+                if (isRunning)
+                    PlayAnimation("run animation");
+                else
                     PlayAnimation("walk animation");
+            }
+            else
+            {
+                if (isRunning)
+                    PlayAnimation("run animation flipped");
                 else
                     PlayAnimation("walk animation flipped");
             }
-            else if (Mathf.Approximately(horizontalSpeed, runSpeed))
-            {
-                Player.state = Player.Move.isRunning;
-                if (direction > 0)
-                    PlayAnimation("run animation");
-                else
-                    PlayAnimation("run animations flipped");
-            }
-
             return;
         }
 
-        PlayAnimation("idle animation right");
+        // No horizontal movement: always play idle (choose left/right based on last direction)
+        if (direction < 0)
+            PlayAnimation("idle animation left");
+        else
+            PlayAnimation("idle animation right");
     }
 
     private void PlayAnimation(string animName)

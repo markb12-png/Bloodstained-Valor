@@ -207,6 +207,15 @@ public class EnemyHealth : MonoBehaviour
 
     private IEnumerator PlayDeathblowSequence()
     {
+        // Require player velocity to be strictly zero
+        if (player == null || player.GetComponent<Rigidbody2D>() == null)
+            yield break;
+
+        Rigidbody2D playerRb = player.GetComponent<Rigidbody2D>();
+        // Use an exact zero vector check (no movement)
+        if (playerRb.velocity != Vector2.zero)
+            yield break;
+
         if (deathblowUIObject != null)
             deathblowUIObject.SetActive(false);
 
@@ -285,6 +294,7 @@ public class EnemyHealth : MonoBehaviour
             fogwallToActivate.SetActive(false);
         }
     }
+
 
     public void LockEnemy()
     {
