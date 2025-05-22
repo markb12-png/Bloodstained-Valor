@@ -20,8 +20,6 @@ public class PlayerAirAttack : MonoBehaviour
     [SerializeField] private GameObject hitboxPrefab;
     [SerializeField] private Vector2 hitboxOffset = new Vector2(0f, -1f);
 
-    // Cooldown fields removed
-
     private Rigidbody2D rb;
     private Animator animator;
     private GroundDetector groundDetector;
@@ -30,6 +28,7 @@ public class PlayerAirAttack : MonoBehaviour
     private MonoBehaviour[] otherScripts;
 
     private bool isAirAttacking = false;
+    private Coroutine airAttackCoroutine;
 
     private void Start()
     {
@@ -46,9 +45,9 @@ public class PlayerAirAttack : MonoBehaviour
 
     public void TriggerAirAttack(Action onComplete)
     {
-        if (!isAirAttacking) // Only check this now
+        if (!isAirAttacking)
         {
-            StartCoroutine(AirAttackSequence(onComplete));
+            airAttackCoroutine = StartCoroutine(AirAttackSequence(onComplete));
         }
     }
 
@@ -117,16 +116,12 @@ public class PlayerAirAttack : MonoBehaviour
 
         EnableAllScripts();
         isAirAttacking = false;
+        airAttackCoroutine = null;
         onComplete?.Invoke();
-
-        // (No cooldown anymore)
     }
 
     private GameObject SpawnHitbox(int direction)
     {
-      
-       
-
         if (hitboxPrefab == null) return null;
 
         Vector3 spawnPosition = transform.position + new Vector3(hitboxOffset.x * direction, hitboxOffset.y, 0);
@@ -150,7 +145,6 @@ public class PlayerAirAttack : MonoBehaviour
     {
         foreach (var script in otherScripts)
         {
-            // Never disable PlayerHealth!
             if (script == null || script is PlayerHealth)
                 continue;
             script.enabled = state;
@@ -161,7 +155,6 @@ public class PlayerAirAttack : MonoBehaviour
     {
         foreach (var script in GetComponents<MonoBehaviour>())
         {
-            // Never disable PlayerHealth!
             if (script == null || script is PlayerHealth)
                 continue;
             script.enabled = true;
@@ -171,5 +164,24 @@ public class PlayerAirAttack : MonoBehaviour
     public bool IsAirAttacking()
     {
         return isAirAttacking;
+    }
+
+    public void ForceCancelAirAttack()
+    {
+        if (airAttackCoroutine != null)
+        {
+            StopCoroutine(airAttackCoroutine);
+            airAttackCoroutine = null;
+        }
+
+        rb.velocity = Vector2.zero;
+        EnableAllScripts();
+
+        if (rb.velocity.x < 0)
+            animator.Play("idle animation left");
+        else
+            animator.Play("idle animation right");
+
+        isAirAttacking = false;
     }
 }

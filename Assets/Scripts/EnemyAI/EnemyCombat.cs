@@ -9,44 +9,49 @@ public class EnemyCombat : MonoBehaviour
     [SerializeField] private int hitboxSpawnFrame = 10;
     [SerializeField] private int hitboxDurationFrames = 8;
     [SerializeField] private float attackAnimationDuration = 0.7f;
+    [SerializeField] private float attackCooldown = 1.5f;
 
     private Animator animator;
-    private bool isAttacking = false;
-    private bool hasAttacked = false;
-    private Vector2 dashDirection;
-
-    public bool IsAttacking => isAttacking;
-    public bool HasAttacked => hasAttacked;
+    private int currentFrame = 0;
+    private float timer = 0f;
+    private GameObject brain;
+    private GameObject movement;
+    private bool isOnCooldown = false;
 
     private void Awake()
     {
         animator = GetComponent<Animator>();
+        brain = GetComponent<EnemyBrain>()?.gameObject;
+        movement = GetComponent<EnemyMovement>()?.gameObject;
     }
 
-    public void Attack(Vector2 directionToPlayer)
+    public bool IsAttacking()
     {
-        if (isAttacking) return;
+        return animator.GetCurrentAnimatorStateInfo(0).IsName("enemy crescent slash");
+    }
 
-        bool facingRight = directionToPlayer.x > 0;
-        float originalScale = Mathf.Abs(transform.localScale.x);
-        transform.localScale = new Vector3(facingRight ? originalScale : -originalScale, transform.localScale.y, transform.localScale.z);
-        dashDirection = facingRight ? Vector2.right : Vector2.left;
+    public void Attack()
+    {
+        if (IsAttacking() || isOnCooldown) return;
 
-        // Force play from beginning even if already playing
         animator.Play("enemy crescent slash", -1, 0f);
 
-        isAttacking = true;
-        hasAttacked = true;
+        if (brain != null) brain.GetComponent<EnemyBrain>().enabled = false;
+        if (movement != null) movement.GetComponent<EnemyMovement>().enabled = false;
 
         Invoke(nameof(SpawnHitbox), hitboxSpawnFrame / 30f);
         Invoke(nameof(FinishAttack), attackAnimationDuration);
+        Invoke(nameof(ResetCooldown), attackCooldown);
+
+        isOnCooldown = true;
     }
 
     private void SpawnHitbox()
     {
         if (hitboxPrefab == null) return;
 
-        Vector2 spawnPos = (Vector2)transform.position + hitboxOffset * dashDirection;
+        float direction = Mathf.Sign(transform.localScale.x);
+        Vector2 spawnPos = (Vector2)transform.position + hitboxOffset * direction;
         GameObject hitbox = Instantiate(hitboxPrefab, spawnPos, Quaternion.identity, transform);
 
         if (hitbox.TryGetComponent(out HitboxDamage damage))
@@ -59,13 +64,14 @@ public class EnemyCombat : MonoBehaviour
 
     private void FinishAttack()
     {
-        isAttacking = false;
-        Player.canAttack = true;
+        if (brain != null) brain.GetComponent<EnemyBrain>().enabled = true;
+        if (movement != null) movement.GetComponent<EnemyMovement>().enabled = true;
+
         animator.Play("enemy idle");
     }
 
-    public void ResetAttackFlag()
+    private void ResetCooldown()
     {
-        hasAttacked = false;
+        isOnCooldown = false;
     }
 }

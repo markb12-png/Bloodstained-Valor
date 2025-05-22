@@ -1,83 +1,118 @@
 ﻿using UnityEngine;
 
-[RequireComponent(typeof(EnemyHealth), typeof(EnemyMovement), typeof(EnemyCombat))]
 public class EnemyBrain : MonoBehaviour
 {
-    public Transform playerPos;
-
-    [Header("Attack Range Detection")]
-    [SerializeField] private BoxCollider2D attackRangeCollider;
-
-    private EnemyHealth enemyHealth;
-    private EnemyMovement movement;
-    private EnemyCombat combat;
-
+    private GameObject player;
+    private EnemyMovement enemyMovement;
+    private EnemyCombat enemyCombat;
     private bool playerInRange = false;
-    private Vector2 playerDistance;
+
+    public bool enemyIsAlerted => playerInRange;
+
+    [SerializeField] private Collider2D attackRangeCollider;
+
+    private readonly float lockedScale = 0.75f;
+    private PlayerAttack playerAttack;
+    private PlayerAirAttack playerAirAttack;
+    private System.Random rng = new System.Random();
+
+    private bool hasTriggeredFogwall = false;
 
     private void Start()
     {
-        enemyHealth = GetComponent<EnemyHealth>();
-        movement = GetComponent<EnemyMovement>();
-        combat = GetComponent<EnemyCombat>();
-    }
+        PlayerHealth.PlayerIsDead = false;
+        player = GameObject.Find("Player");
+        enemyMovement = GetComponent<EnemyMovement>();
+        enemyCombat = GetComponent<EnemyCombat>();
 
-    private void Update()
-    {
-        if (!playerInRange || enemyHealth.isDead || enemyHealth.isInDeathblowState)
-            return;
+        if (player == null)
+            Debug.LogError("[EnemyBrain] Player GameObject NOT FOUND — must be named 'Player'");
+        if (enemyMovement == null)
+            Debug.LogError("[EnemyBrain] EnemyMovement script NOT found.");
+        if (enemyCombat == null)
+            Debug.LogError("[EnemyBrain] EnemyCombat script NOT found.");
+        if (attackRangeCollider == null)
+            Debug.LogError("[EnemyBrain] Attack range collider NOT assigned.");
 
-        playerDistance = playerPos.position - transform.position;
-        float xDistance = Mathf.Abs(playerDistance.x);
+        playerAttack = player.GetComponent<PlayerAttack>();
+        playerAirAttack = player.GetComponent<PlayerAirAttack>();
 
-        // Check if player is inside the attack range box
-        if (attackRangeCollider != null && attackRangeCollider.bounds.Contains(playerPos.position))
-        {
-            if (!combat.IsAttacking && !combat.HasAttacked)
-            {
-                combat.Attack(playerDistance);
-            }
-        }
-        else
-        {
-            if (!combat.IsAttacking)
-            {
-                if (Player.isAttacking && Random.value < 0.5f)
-                {
-                    movement.Backdash(playerDistance);
-                    return;
-                }
-
-                if (xDistance > 2.5f) // move closer if too far
-                {
-                    movement.WalkToward(playerDistance);
-                }
-                else if (xDistance < 1f) // move back if too close
-                {
-                    movement.WalkAway(playerDistance);
-                }
-                else
-                {
-                    combat.ResetAttackFlag();
-                    movement.SetIdleIfStopped();
-                }
-            }
-        }
+        if (playerAttack == null || playerAirAttack == null)
+            Debug.LogError("[EnemyBrain] PlayerAttack or PlayerAirAttack script not found on Player.");
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
+        if (other.gameObject == player)
         {
             playerInRange = true;
+            Debug.Log("[EnemyBrain] Player ENTERED detection zone.");
+
+            if (!hasTriggeredFogwall)
+            {
+                hasTriggeredFogwall = true;
+
+                if (gameObject.name.Contains("1"))
+                    GameObject.Find("Fogwall 1")?.SetActive(true);
+                else if (gameObject.name.Contains("2"))
+                    GameObject.Find("Fogwall 2")?.SetActive(true);
+            }
         }
     }
 
     private void OnTriggerExit2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
+        if (other.gameObject == player)
         {
             playerInRange = false;
+            Debug.Log("[EnemyBrain] Player EXITED detection zone.");
+        }
+    }
+
+    private void Update()
+    {
+        if (PlayerHealth.PlayerIsDead || player == null) return;
+
+        if (playerInRange)
+        {
+            float direction = player.transform.position.x - transform.position.x;
+            transform.localScale = new Vector3(
+                direction > 0 ? lockedScale : -lockedScale,
+                lockedScale,
+                lockedScale
+            );
+
+            if ((playerAttack != null && playerAttack.IsPlayerAttacking()) ||
+                (playerAirAttack != null && playerAirAttack.IsAirAttacking()))
+            {
+                if (rng.NextDouble() < 0.5)
+                {
+                    Vector2 directionFromPlayer = transform.position - player.transform.position;
+                    enemyMovement.Backdash(directionFromPlayer);
+                    return;
+                }
+            }
+
+            if (!attackRangeCollider.bounds.Intersects(player.GetComponent<Collider2D>().bounds))
+            {
+                enemyMovement.MoveToward(player.transform.position.x);
+            }
+            else
+            {
+                enemyMovement.Stop();
+
+                if (!enemyCombat.IsAttacking())
+                {
+                    if (rng.NextDouble() < 0.5)
+                    {
+                        enemyCombat.Attack();
+                    }
+                }
+            }
+        }
+        else
+        {
+            enemyMovement.Stop();
         }
     }
 }

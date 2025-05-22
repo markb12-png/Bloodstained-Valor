@@ -34,7 +34,7 @@ public class PlayerAttack : MonoBehaviour
     private MonoBehaviour[] otherScripts;
 
     private bool isAttacking = false;
-    private bool interruptedByClash = false;
+    private Coroutine attackCoroutine;
 
     private void Start()
     {
@@ -46,64 +46,51 @@ public class PlayerAttack : MonoBehaviour
             .Where(script => script != null && script != this && script != groundDetector)
             .ToArray();
 
-        Player.canAttack = true; // ✅ Initialize attack state
+        Player.canAttack = true;
+        Player.isAttacking = false;
     }
 
     private void Update()
     {
-        bool inputPressed = Input.GetButtonDown("Attack"); // Make sure Input Manager is configured
-      
+        bool inputPressed = Input.GetButtonDown("Attack");
         bool grounded = groundDetector != null && groundDetector.IsGrounded;
         bool canAttackNow = !isAttacking && Player.canAttack;
 
-        
         if (inputPressed && grounded && canAttackNow)
         {
-           
-            StartCoroutine(AttackSequence());
+            attackCoroutine = StartCoroutine(AttackSequence());
         }
-
-        isAttacking = Player.isAttacking;
     }
 
     private IEnumerator AttackSequence()
     {
         isAttacking = true;
+        Player.isAttacking = true;
         Player.canAttack = false;
-        interruptedByClash = false;
 
         ToggleOtherScripts(false);
 
         Vector2 dashDirection = transform.localScale.x > 0 ? Vector2.right : Vector2.left;
 
-        if (animator != null)
-        {
-            animator.Play("knight sword attack");
-        }
+        animator?.Play("knight sword attack");
 
         rb.velocity = Vector2.zero;
         int currentFrame = 0;
 
-        // Startup
         while (currentFrame < startupFrames)
         {
-            if (interruptedByClash) yield break;
             currentFrame++;
             yield return null;
         }
 
-        // Dash phase
         while (currentFrame < startupFrames + dashFrames)
         {
-            if (interruptedByClash) yield break;
-
             float progress = (currentFrame - startupFrames) / (float)dashFrames;
             float speed = maxDashSpeed * accelerationCurve.Evaluate(progress);
             rb.velocity = dashDirection * speed;
 
             if (currentFrame == hitboxSpawnFrame)
             {
-                Debug.Log("[Attack] Spawning hitbox");
                 SpawnHitbox(dashDirection);
             }
 
@@ -111,12 +98,9 @@ public class PlayerAttack : MonoBehaviour
             yield return null;
         }
 
-        // Slowdown
         float initialSpeed = rb.velocity.magnitude;
         while (currentFrame < startupFrames + dashFrames + slowdownFrames)
         {
-            if (interruptedByClash) yield break;
-
             float progress = (currentFrame - startupFrames - dashFrames) / (float)slowdownFrames;
             float speed = Mathf.Lerp(initialSpeed, 0, progress * progress);
             rb.velocity = dashDirection * speed;
@@ -127,10 +111,8 @@ public class PlayerAttack : MonoBehaviour
 
         rb.velocity = Vector2.zero;
 
-        // Recovery
         while (currentFrame < startupFrames + dashFrames + slowdownFrames + recoveryFrames)
         {
-            if (interruptedByClash) yield break;
             currentFrame++;
             yield return null;
         }
@@ -141,20 +123,33 @@ public class PlayerAttack : MonoBehaviour
             return state.IsName("knight sword attack") && state.normalizedTime >= 1f;
         });
 
-        // Reset to idle animation
-        if (rb.velocity.x < 0)
-            animator.Play("idle animation left");
-        else
-            animator.Play("idle animation right");
+        animator.Play(rb.velocity.x < 0 ? "idle animation left" : "idle animation right");
 
-        Debug.Log("FROM PLAYER ATTACK: Restore scripts");
         ToggleOtherScripts(true);
         isAttacking = false;
-
-        Debug.Log("[Attack] Attack finished. Starting cooldown.");
+        Player.isAttacking = false;
 
         yield return new WaitForSeconds(cooldownTime);
         Player.canAttack = true;
+    }
+
+    public void ForceCancelAttack()
+    {
+        if (attackCoroutine != null)
+        {
+            StopCoroutine(attackCoroutine);
+            attackCoroutine = null;
+        }
+
+        ToggleOtherScripts(true);
+        isAttacking = false;
+        Player.isAttacking = false;
+        Player.canAttack = true;
+
+        if (animator != null)
+        {
+            animator.Play(rb.velocity.x < 0 ? "idle animation left" : "idle animation right");
+        }
     }
 
     private void SpawnHitbox(Vector2 direction)
@@ -185,5 +180,10 @@ public class PlayerAttack : MonoBehaviour
 
             script.enabled = state;
         }
+    }
+
+    public bool IsPlayerAttacking()
+    {
+        return isAttacking;
     }
 }

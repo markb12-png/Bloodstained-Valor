@@ -2,25 +2,33 @@ using UnityEngine;
 using System.Collections;
 
 [RequireComponent(typeof(Animator))]
+[RequireComponent(typeof(Rigidbody2D))]
 public class EnemyMovement : MonoBehaviour
 {
+    [Header("Movement Settings")]
     [SerializeField] private float speed = 0.1f;
     [SerializeField] private float backdashDistance = 1f;
     [SerializeField] private float backdashDuration = 0.6f;
+
+    [Header("Debug / Manual Control")]
+    [SerializeField] private bool enableManualBackdash = false;
+    [SerializeField] private Transform playerTransform;
 
     private Animator animator;
     private Rigidbody2D rb;
     private bool isBackdashing = false;
     private int originalLayer;
 
-    [Header("Debug")]
-    [SerializeField] private bool enableManualBackdash = false; // Enable to test with K key
-    [SerializeField] private Transform playerTransform; // Needed for direction when testing
-
     private void Awake()
     {
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody2D>();
+
+        if (animator == null || rb == null)
+        {
+            Debug.LogError($"{name}: Missing required components on EnemyMovement.");
+        }
+
         originalLayer = gameObject.layer;
     }
 
@@ -37,8 +45,8 @@ public class EnemyMovement : MonoBehaviour
     {
         if (isBackdashing) return;
 
-        float dir = Mathf.Sign(directionToPlayer.x);
-        transform.position += new Vector3(speed * dir, 0, 0);
+        float moveDir = Mathf.Sign(directionToPlayer.x);
+        transform.position += new Vector3(speed * moveDir, 0, 0);
         animator.Play("enemy forwards walk");
     }
 
@@ -46,8 +54,8 @@ public class EnemyMovement : MonoBehaviour
     {
         if (isBackdashing) return;
 
-        float dir = Mathf.Sign(directionToPlayer.x);
-        transform.position -= new Vector3(speed * dir, 0, 0);
+        float moveDir = Mathf.Sign(directionToPlayer.x);
+        transform.position -= new Vector3(speed * moveDir, 0, 0);
         animator.Play("enemy backwards walk");
     }
 
@@ -69,7 +77,16 @@ public class EnemyMovement : MonoBehaviour
     private IEnumerator BackdashRoutine(Vector2 directionFromPlayer)
     {
         isBackdashing = true;
-        gameObject.layer = LayerMask.NameToLayer("Invulnerable");
+
+        int invulnerableLayer = LayerMask.NameToLayer("Invulnerable");
+        if (invulnerableLayer == -1)
+        {
+            Debug.LogWarning("Layer 'Invulnerable' not found. Backdash will not apply invincibility.");
+        }
+        else
+        {
+            gameObject.layer = invulnerableLayer;
+        }
 
         float dir = Mathf.Sign(directionFromPlayer.x);
         Vector3 startPos = transform.position;
@@ -91,18 +108,39 @@ public class EnemyMovement : MonoBehaviour
         gameObject.layer = originalLayer;
         isBackdashing = false;
 
-        // Return to idle or walk animation based on velocity
+        UpdateIdleOrWalk();
+    }
+
+    private void UpdateIdleOrWalk()
+    {
+        float velX = rb.velocity.x;
         if (rb.velocity.magnitude < 0.01f)
         {
             animator.Play("enemy idle");
         }
-        else if (rb.velocity.x > 0)
+        else if (velX > 0)
         {
             animator.Play("enemy forwards walk");
         }
         else
         {
             animator.Play("enemy backwards walk");
+        }
+    }
+
+    public void MoveToward(float targetX)
+    {
+        if (isBackdashing) return;
+
+        float direction = targetX - transform.position.x;
+        WalkToward(new Vector2(direction, 0));
+    }
+
+    public void Stop()
+    {
+        if (!isBackdashing)
+        {
+            SetIdleIfStopped();
         }
     }
 }

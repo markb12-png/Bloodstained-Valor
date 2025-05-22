@@ -31,9 +31,10 @@ public class PlayerHealth : MonoBehaviour
     public GameObject UIParent;
     public GameObject UIHealth;
 
+    public static bool PlayerIsDead = false;
+
     private void Awake()
     {
-        // Guaranteed: Hide the death UI before anything else
         if (deathOverlay != null) deathOverlay.SetActive(false);
         if (deathText != null) deathText.SetActive(false);
     }
@@ -53,9 +54,12 @@ public class PlayerHealth : MonoBehaviour
 
     private void Update()
     {
-        UIParent = this.gameObject.transform.Find("UI").gameObject;
-        UIHealth = UIParent.transform.Find("Player UI").gameObject.transform.Find("health").gameObject;
-        healthSlider = UIHealth.GetComponent<Slider>();
+        UIParent = transform.Find("UI")?.gameObject;
+        UIHealth = UIParent?.transform.Find("Player UI")?.Find("health")?.gameObject;
+
+        if (UIHealth != null)
+            healthSlider = UIHealth.GetComponent<Slider>();
+
         if (!isDead && currentHealth < maxHealth)
         {
             if (Time.time - lastDamageTime >= delayBeforeRegeneration && regenerationCoroutine == null)
@@ -77,17 +81,13 @@ public class PlayerHealth : MonoBehaviour
 
         lastDamageTime = Time.time;
 
-        // Knockback from hit direction
         Vector2 knockbackDir = (transform.position - (Vector3)hitSourcePosition).normalized;
         rb.AddForce(knockbackDir * 10f, ForceMode2D.Impulse);
-
-        // Camera shake
-       
 
         if (currentHealth > 0)
         {
             animator.Play("knight stun");
-            StartCoroutine(StunRoutine());
+            StartCoroutine(StunRoutine(true));
         }
         else
         {
@@ -96,7 +96,7 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
-    private IEnumerator StunRoutine()
+    private IEnumerator StunRoutine(bool wasAttacking)
     {
         var groundDetector = GetComponent<GroundDetector>();
         var toDisable = GetComponents<MonoBehaviour>()
@@ -108,23 +108,26 @@ public class PlayerHealth : MonoBehaviour
 
         yield return new WaitForSeconds(0.5f);
 
-        if (rb.velocity.x < 0)
-            animator.Play("idle animation left");
-        else
-            animator.Play("idle animation right");
+        animator.Play(rb.velocity.x < 0 ? "idle animation left" : "idle animation right");
 
         foreach (var script in toDisable)
             script.enabled = true;
 
-        // FIX: Reset jump state so the player can jump after stun
         var jump = GetComponent<PlayerJump>();
         if (jump != null)
             jump.ResetJumpState();
-    }
 
+        if (wasAttacking)
+        {
+            var attack = GetComponent<PlayerAttack>();
+            if (attack != null) attack.ForceCancelAttack();
+        }
+    }
 
     private IEnumerator HandleDeath()
     {
+        PlayerIsDead = true;
+
         isDead = true;
         rb.velocity = Vector2.zero;
         rb.bodyType = RigidbodyType2D.Static;
@@ -136,11 +139,8 @@ public class PlayerHealth : MonoBehaviour
         }
 
         if (animator != null)
-        {
             animator.Play("knight death");
-        }
 
-        // Activate death UI elements on death
         if (deathOverlay != null) deathOverlay.SetActive(true);
         if (deathText != null) deathText.SetActive(true);
 
@@ -150,7 +150,6 @@ public class PlayerHealth : MonoBehaviour
 
     private IEnumerator RegenerateHealth()
     {
-        Debug.Log("[Health] Starting health regeneration.");
         while (currentHealth < maxHealth && !isDead)
         {
             if (Time.time - lastDamageTime < delayBeforeRegeneration)
@@ -166,7 +165,6 @@ public class PlayerHealth : MonoBehaviour
             yield return new WaitForSeconds(regenerationInterval);
         }
 
-        Debug.Log("[Health] Regeneration complete.");
         regenerationCoroutine = null;
     }
 
@@ -176,7 +174,6 @@ public class PlayerHealth : MonoBehaviour
         {
             StopCoroutine(regenerationCoroutine);
             regenerationCoroutine = null;
-            Debug.Log("[Health] Regeneration stopped.");
         }
     }
 
