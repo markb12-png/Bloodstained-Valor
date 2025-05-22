@@ -46,9 +46,13 @@ public class EnemyHealth : MonoBehaviour
     private GameObject player;
     private GroundDetector playerGround;
     private bool hasTriggeredFogwall = false;
+    private Coroutine attackCoroutine;
+
+    EnemyCombat EnemyCombat;
 
     private void Start()
     {
+        EnemyCombat = this.gameObject.GetComponent<EnemyCombat>();
         currentHealth = maxHealth;
         UpdateHealthUI();
 
@@ -163,6 +167,10 @@ public class EnemyHealth : MonoBehaviour
 
     private IEnumerator StunRoutine()
     {
+        // Stop the attack coroutine if it's running
+        StopCoroutine(EnemyCombat.EnemyAttack());
+     
+
         if (isInDeathblowState) yield break;
 
         if (animator != null)

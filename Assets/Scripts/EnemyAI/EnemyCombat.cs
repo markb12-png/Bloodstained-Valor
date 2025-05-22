@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 [RequireComponent(typeof(Animator))]
@@ -30,20 +31,46 @@ public class EnemyCombat : MonoBehaviour
         return animator.GetCurrentAnimatorStateInfo(0).IsName("enemy crescent slash");
     }
 
-    public void Attack()
+    // Now public!
+    public IEnumerator EnemyAttack()
     {
-        if (IsAttacking() || isOnCooldown) return;
+        // If already attacking or on cooldown, exit coroutine early
+        if (IsAttacking() || isOnCooldown) yield break;
+
+        isOnCooldown = true;
 
         animator.Play("enemy crescent slash", -1, 0f);
 
         if (brain != null) brain.GetComponent<EnemyBrain>().enabled = false;
         if (movement != null) movement.GetComponent<EnemyMovement>().enabled = false;
 
-        Invoke(nameof(SpawnHitbox), hitboxSpawnFrame / 30f);
-        Invoke(nameof(FinishAttack), attackAnimationDuration);
-        Invoke(nameof(ResetCooldown), attackCooldown);
+        // Wait until it's time to spawn the hitbox (converted frames to seconds)
+        float hitboxDelay = hitboxSpawnFrame / 30f;
+        yield return new WaitForSeconds(hitboxDelay);
 
-        isOnCooldown = true;
+        SpawnHitbox();
+
+        // Wait until attack animation is finished (duration - hitboxDelay)
+        float animationRemainder = attackAnimationDuration - hitboxDelay;
+        if (animationRemainder > 0)
+            yield return new WaitForSeconds(animationRemainder);
+
+        FinishAttack();
+
+        // Restore movement/brain (optional: do it in FinishAttack if you want)
+        if (brain != null) brain.GetComponent<EnemyBrain>().enabled = true;
+        if (movement != null) movement.GetComponent<EnemyMovement>().enabled = true;
+
+        // Wait out the cooldown before another attack can start
+        yield return new WaitForSeconds(attackCooldown - attackAnimationDuration);
+
+        isOnCooldown = false;
+    }
+
+    // Added for convenience
+    public void Attack()
+    {
+        StartCoroutine(EnemyAttack());
     }
 
     private void SpawnHitbox()
